@@ -21,8 +21,8 @@ update:; forge update
 
 build:; forge build
 
-test :; forge test 
-
+test :; forge test -vvvv
+	
 snapshot :; forge snapshot
 
 format :; forge fmt
@@ -30,7 +30,7 @@ format :; forge fmt
 anvil :; anvil -m 'test test test test test test test test test test test junk' --steps-tracing --block-time 1
 
 deploy:
-	@forge script script/DeployOurToken.s.sol:DeployOurToken --rpc-url http://localhost:8545 --private-key $(DEFAULT_ANVIL_KEY) --broadcast
+	@forge script script/DeploySyndicate.s.sol:DeploySyndicate --rpc-url http://127.0.0.1:8545 --private-key $(PRIVATE_KEY_0) --broadcast -vvvv
 
 
 deploy-sepolia:
