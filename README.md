@@ -6,6 +6,8 @@ See the `.env.example` file for a starting point of the environment variables yo
 
 A `Makefile` is provided for more concise running of commands, but it's usefulness is not guaranteed at any given point in time.
 
+For development purposes, we will be using `pragma solidity ^0.8.19`, but prior to release will lock down the solidity version, likely to 0.8.25
+
 ## Foundry
 
 **Foundry is a blazing fast, portable and modular toolkit for Ethereum application development written in Rust.**
