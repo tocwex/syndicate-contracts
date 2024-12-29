@@ -43,8 +43,8 @@ contract SyndicateToken is ERC20 {
         string memory _symbol
     ) ERC20(_name, _symbol) {
         i_owner = _owner;
-        _mint(msg.sender, _initialSupply); // totalSupply is managed by _mint and _burn fuctions
         maxSupply = _maxSupply;
+        _mint(msg.sender, _initialSupply); // totalSupply is managed by _mint and _burn fuctions
     }
 
     // Functions
