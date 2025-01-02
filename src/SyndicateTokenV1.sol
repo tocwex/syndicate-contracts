@@ -14,7 +14,7 @@ pragma solidity ^0.8.19;
 //
 import {ERC20} from "@openzepplin/token/ERC20/ERC20.sol";
 
-contract SyndicateToken is ERC20 {
+contract SyndicateTokenV1 is ERC20 {
     // ERC20 Parent Contract Variables
     // mapping(address => uint256) private _balances;
     // mapping(address => mapping(address => uint256)) private _allowances;
@@ -25,7 +25,7 @@ contract SyndicateToken is ERC20 {
     //// Constants
 
     //// Immutables
-
+    address public immutable SYNDICATE_DEPLOYER; // Make static deployer address?
     address public immutable i_owner;
 
     //// Regular State Variables
@@ -42,6 +42,10 @@ contract SyndicateToken is ERC20 {
         string memory _name,
         string memory _symbol
     ) ERC20(_name, _symbol) {
+        require(
+            msg.sender == SYNDICATE_DEPLOYER,
+            "Syndicate Tokens must be deployed from the Syndicate factory contract"
+        );
         i_owner = _owner;
         maxSupply = _maxSupply;
         _mint(msg.sender, _initialSupply); // totalSupply is managed by _mint and _burn fuctions
