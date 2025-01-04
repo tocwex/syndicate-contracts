@@ -2,6 +2,8 @@
 
 pragma solidity ^0.8.19;
 
+//TODO: add "ownershipRejected" event
+
 /// @title Interface for Syndicate Deployer
 /// @author @thelifeandtimes
 /// @notice deploys syndicate tokens associated with onchain Urbit identities

@@ -11,7 +11,7 @@ pragma solidity ^0.8.19;
 // access control list by TBA address (How do I do TBA lookup onchain?)
 // upgradable contract proxy
 // ownable deployment factory, but no control over the ledger
-
+// TODO implement receive and fallback Functions
 import {ISyndicateRegistry} from "./SyndicateRegistry.sol";
 import {SyndicateTokenV1} from "./SyndicateTokenV1.sol";
 import {ISyndicateDeployerV1} from "./interfaces/ISyndicateDeployerV1.sol";

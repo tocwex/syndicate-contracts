@@ -1,61 +1,23 @@
 // SPDX-License-Identifier: GPLv3
 
 pragma solidity ^0.8.19;
+// TODO: where does the fee recipient address actually belong? presumably it should be set
+// at a single level and then referenced by the respective ERC20 contracts. Alternatively we could
+// make it immutable as the TBA of ~tocwex? It is currently set in the Deployer contracts, but should
+// probably be moved here to the registry contract.
+// TODO implement receive and fallback Functions
 
-import {Ownable} from "@openzepplin/access/Ownable.sol";
+// import {Ownable} from "@openzepplin/access/Ownable.sol";
 import {SyndicateTokenV1} from "./SyndicateTokenV1.sol";
 import {SyndicateDeployerV1} from "./SyndicateDeployerV1.sol";
-
-interface ISyndicateRegistry {
-    // Events
-    // TODO emit events from functions
-    //// Deployer Events
-    event DeployerRegistered(
-        address indexed syndicateDeployer,
-        string deployerVersion
-    );
-    event DeployerRemoved(address indexed syndicateDeployer);
-
-    //// Ownership Events
-    event OwnerUpdated(address previousOwner, address newOwner);
-    event OwnershipRejected(address pendingOwner, address previousOwner); // not sure about the parameters here
-
-    //// Syndicate Events
-    event SyndicateLaunched(
-        address indexed syndicateToken,
-        address indexed owner,
-        string name,
-        string symbol
-    );
-
-    // Errors
-    error Unauthorized();
-}
+import {ISyndicateRegistry} from "./interfaces/ISyndicateRegistry.sol";
 
 contract SyndicateRegistry is ISyndicateRegistry {
-    // Structs and types
-    struct SyndicateDeployerData {
-        address deployerOwner;
-        address deployerAddress;
-        string version;
-        bool isActive;
-    }
-
-    struct Syndicate {
-        address syndicateOwner;
-        address syndicateContract;
-        SyndicateDeployerData syndicateDeploymentData;
-        uint256 syndicateLaunchTime; // block height
-    }
-    // TODOS for Structs
-    // Add Syndicate types by galaxy/star/galaxyplanet?
-    // If I add these now, future deployers could check against the registry and
-    // allow or disallow the deployer from adding a syndicate to the SyndicateRegistry
-
     // State Variables
     address public owner;
     address public pendingOwner;
     Syndicate public syndicate;
+    SyndicateDeployerData public syndicateDeployer;
 
     // Mappings
     mapping(address => SyndicateDeployerData) public deployerData; // Deployer address => deployer data
@@ -72,6 +34,15 @@ contract SyndicateRegistry is ISyndicateRegistry {
         _;
     }
 
+    modifier onlyValidDeployer() {
+        // TODO check this logic; synidcateDeployer might need to be an array or have a better mapping?
+        require(
+            msg.sender == syndicateDeployer.deployerAddress,
+            Unauthorized()
+        );
+        _;
+    }
+
     // Constructor
 
     constructor() {
@@ -80,6 +51,7 @@ contract SyndicateRegistry is ISyndicateRegistry {
     }
 
     // Functions
+    //// External Functions
     function addDeployer(
         address deployer,
         string calldata version
@@ -94,18 +66,20 @@ contract SyndicateRegistry is ISyndicateRegistry {
         // this would mean the deployers should include a registry check modifier.
     }
 
-    function addSyndicate() public {
+    function registerSyndicate(Syndicate syndicate) public onlyValidDeployer {
         revert("Not implemented");
         // this should only be callable by active deployers
         // where does the check happen to ensure there is a 1:1 mapping of @p to token?
     }
 
-    function updateOwner() public onlyOwner {
+    function updateOwner(
+        address pendingOwner
+    ) public onlyOwner returns (bool success) {
         revert("Not implemented");
         // do we want this to be a 2-step ownership transfer? Probably, since it is such a vital ecosystem element
     }
 
-    function acceptOwnership() public onlyPendingOwner {
+    function acceptOwnership() public onlyPendingOwner returns (bool success) {
         revert("Not implemented");
         // logic for pending owner to accept or reject ownership
     }

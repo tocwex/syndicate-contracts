@@ -2,6 +2,7 @@
 
 pragma solidity ^0.8.19;
 
+// TODO implement receive and fallback Functions
 // TODO
 // For the initial version of the token launch feature in %slab, we will use a basic ERC20 factory contract that enables a visitor to pass in constructor values to set:
 //
