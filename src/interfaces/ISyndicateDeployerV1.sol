@@ -2,8 +2,6 @@
 
 pragma solidity ^0.8.19;
 
-//TODO: add "ownershipRejected" event
-
 /// @title Interface for Syndicate Deployer
 /// @author @thelifeandtimes
 /// @notice deploys syndicate tokens associated with onchain Urbit identities
@@ -19,8 +17,7 @@ interface ISyndicateDeployerV1 {
     /// @notice emitted when owner updates the fee percentage
     /// @dev
     /// @param fee The minting fee as percentage
-    /// @param deployerOwner The address that updated the fee
-    event FeeUpdated(uint256 fee, address deployerOwner);
+    event FeeUpdated(uint256 fee);
 
     event FeeRecipientUpdated(address feeRecipient);
 
@@ -34,6 +31,12 @@ interface ISyndicateDeployerV1 {
     /// @dev
     /// @param newOwner as new address that accepted ownership
     event OwnerUpdated(address newOwner);
+
+    /// @notice emitted when ownership change is rejected
+    /// @dev
+    /// @param proposedOwner The address rejected from the ownership proposal
+    /// @param deployerOwner The address retaining ownership rights
+    event ProposalRejected(address proposedOwner, address deployerOwner);
 
     // Errors
     // TODO Add natspec
@@ -71,11 +74,11 @@ interface ISyndicateDeployerV1 {
 
     /// @notice called to check protocol fee
     /// @dev Likely to be better retrieved via the FeeUpdated event
-    /// @return fee as uint256
+    /// @return fee as uint256 with 18 decimals
     function checkFee() external view returns (uint256 fee);
 
     /// @notice Called to check the owner of the SyndicateDeployer contract
-    /// @dev Likely to be better retrieved via the @OwnerUpdated event
+    /// @dev Likely to be better retrieved via the OwnerUpdated event
     /// @return deployerOwner The address of the SyndicateDeployer contract
     function checkOwner() external view returns (address deployerOwner);
 
