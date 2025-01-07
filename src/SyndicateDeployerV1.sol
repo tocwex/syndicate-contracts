@@ -49,6 +49,16 @@ contract SyndicateDeployerV1 is ISyndicateDeployerV1 {
     }
 
     // Functions
+    //// receive
+    receive() external payable {
+        revert("Direct ETH transfers not accepted"); // TK we could make this a donation to the registry owner?
+    }
+
+    //// fallback
+    fallback() external payable {
+        revert("Function does not exist"); // TK we could make this a donation to the registry owner as well?
+    }
+
     //// External functions
     // @inheritdoc ISyndicateDeployerV1
     function deploySyndicate(

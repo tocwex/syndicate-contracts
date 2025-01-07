@@ -2,6 +2,7 @@
 
 pragma solidity ^0.8.19;
 
+// TODO update openzepplin contracts to ^5.0.0 ?
 // TODO implement receive and fallback Functions
 // TODO
 // For the initial version of the token launch feature in %slab, we will use a basic ERC20 factory contract that enables a visitor to pass in constructor values to set:
@@ -27,7 +28,7 @@ contract SyndicateTokenV1 is ERC20 {
 
     //// Immutables
     address public immutable SYNDICATE_DEPLOYER; // Make static deployer address?
-    address public immutable i_owner;
+    address public immutable i_owner; // TK is owner really immutable? TBA addresses *may* change, do we want there to be some possible ownership update logic?
 
     //// Regular State Variables
     uint256 public maxSupply;
@@ -53,7 +54,21 @@ contract SyndicateTokenV1 is ERC20 {
     }
 
     // Functions
+    //// receive
+    receive() external payable {
+        revert("Direct ETH transfers not accepted"); // TK we could make this a donation to the registry owner?
+    }
 
+    //// fallback
+    fallback() external payable {
+        revert("Function does not exist"); // TK we could make this a donation to the registry owner as well?
+    }
+
+    //// external
+
+    //// public
+
+    //// internal
     function _mint(address account, uint256 amount) internal override {
         require(
             totalSupply() + amount <= maxSupply,
@@ -62,11 +77,7 @@ contract SyndicateTokenV1 is ERC20 {
         require(msg.sender == i_owner, "ERC20: Owner is only minter");
         super._mint(account, amount);
     }
-    //// receive
-    //// fallback
-    //// external
-    //// public
-    //// internal
+
     //// private
     //// view / pure
 }
