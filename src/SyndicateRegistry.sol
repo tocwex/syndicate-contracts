@@ -62,29 +62,36 @@ contract SyndicateRegistry is ISyndicateRegistry {
     }
 
     //// External Functions
-    function addDeployer(
-        address deployer,
-        string calldata version
-    ) public onlyOwner {
+    function registerDeployer(
+        SyndicateDployerData calldata syndicateDeployerData
+    ) external onlyOwner returns (bool success) {
         revert("Not implemented");
         // Do we want to limit to one deployer per version? I suspect 'yes'
     }
 
-    function removeDeployer() public onlyOwner {
+    function deactivateDeployer(
+        SyndicateDeployerData calldata syndicateDeployerData
+    ) external onlyOwner returns (bool success) {
         revert("Not implemented");
-        // what should removing a deployer do? probably make it no longer callable
-        // this would mean the deployers should include a registry check modifier.
     }
 
-    function registerSyndicate(Syndicate syndicate) public onlyValidDeployer {
+    function reactivateDeployer(
+        SyndicateDeployerData calldata syndicateDeployerData
+    ) external onlyOwner returns (bool success) {
+        revert("Not implemented");
+    }
+
+    function registerSyndicate(
+        Syndicate calldata _syndicate
+    ) external onlyValidDeployer returns (bool success) {
         revert("Not implemented");
         // this should only be callable by active deployers
         // where does the check happen to ensure there is a 1:1 mapping of @p to token?
     }
 
     function updateOwner(
-        address pendingOwner
-    ) public onlyOwner returns (bool success) {
+        address _pendingOwner
+    ) external onlyOwner returns (bool success) {
         revert("Not implemented");
         // do we want this to be a 2-step ownership transfer? Probably, since it is such a vital ecosystem element
     }
@@ -92,5 +99,21 @@ contract SyndicateRegistry is ISyndicateRegistry {
     function acceptOwnership() public onlyPendingOwner returns (bool success) {
         revert("Not implemented");
         // logic for pending owner to accept or reject ownership
+    }
+
+    function rejectOwnership()
+        external
+        onlyPendingOwner
+        returns (bool success)
+    {
+        revert("Not implemented");
+    }
+
+    function nullifyProposal() external onlyOwner returns (bool success) {
+        revert("Not implmented");
+    }
+
+    function renounceOwnership() external onlyOwner returns (bool success) {
+        revert("Not implemented");
     }
 }
