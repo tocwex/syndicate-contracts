@@ -8,17 +8,17 @@ pragma solidity ^0.8.19;
 // might need to get into deploying the ERC6551 and Azimuth contracts onto my testnets if/when we get more complicated about the minting permissions
 
 import {Script} from "@forge-std/Script.sol";
-import {SyndicateToken} from "../src/SyndicateToken.sol";
-import {SyndicateDeployer} from "../src/SyndicateDeployer.sol";
+import {SyndicateTokenV1} from "../src/SyndicateTokenV1.sol";
+import {SyndicateDeployerV1} from "../src/SyndicateDeployerV1.sol";
 
 contract DeploySyndicate is Script {
     function setUp() public {}
 
-    function run() external returns (SyndicateDeployer) {
+    function run() external returns (SyndicateDeployerV1) {
         vm.startBroadcast();
-        SyndicateDeployer syndicateDeployer = new SyndicateDeployer();
+        SyndicateDeployerV1 syndicateDeployerV1 = new SyndicateDeployerV1();
         vm.stopBroadcast();
-        return syndicateDeployer;
+        return syndicateDeployerV1;
     }
     // struct DeploymentParams {
     //     address owner;
