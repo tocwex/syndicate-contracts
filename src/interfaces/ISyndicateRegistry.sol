@@ -134,7 +134,9 @@ interface ISyndicateRegistry {
     /// @notice called calldata by Syndicate Registry owner to propose new ownership keys
     /// @dev should only be callable by current contract owner
     /// @param pendingOwner The address of the proposed new owner
-    function updateOwner(address pendingOwner) external returns (bool success);
+    function proposeNewOwner(
+        address proposedOwner
+    ) external returns (address pendingOwner, address owner);
 
     /// @notice Called by pendingOwner to accept ownership of Syndicate Registry contract
     /// @dev should only be callable by pendingOwner
@@ -143,7 +145,7 @@ interface ISyndicateRegistry {
 
     /// @notice Called by pendingOwner to reject ownership of Syndicate Registry contract
     /// @dev should only be callable by pendingOwner
-    /// @return success Confirmation of onchain rejection of owership duties by pendingOwner
+    /// @return success Confirmation of onchain rejection of ownership rights by pendingOwner
     function rejectOwnership() external returns (bool success);
 
     /// @notice Called by Syndicate Registry owner to nullify the new owner proposal
