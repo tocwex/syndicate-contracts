@@ -5,9 +5,9 @@ pragma solidity ^0.8.19;
 interface ISyndicateRegistry {
     // Structs and types
     struct SyndicateDeployerData {
-        address deployerAddress;
-        string version;
-        bool isActive;
+        address deployerAddress; // 20 bytes
+        uint64 deployerVersion; // 8 bytes
+        bool isActive; // 1 byte
     }
 
     struct Syndicate {
@@ -31,7 +31,7 @@ interface ISyndicateRegistry {
     /// @param isActive The registration eligibility of the deployer, should be true on initial registration
     event DeployerRegistered(
         address indexed syndicateDeployer,
-        string deployerVersion,
+        uint64 deployerVersion,
         bool isActive
     );
 

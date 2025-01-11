@@ -10,11 +10,13 @@ contract SyndicateRegistry is ISyndicateRegistry {
     // State Variables
     address private _owner;
     address private _pendingOwner;
-    SyndicateDeployerData[] private _syndicateDeployer;
+    address[] private _syndicateDeployers;
 
     // Mappings
     mapping(address => SyndicateDeployerData) private _deployerData; // Deployer address => deployer data
-    mapping(address => Syndicate) private _syndicate; // owner address => syndicate token contract struct
+    mapping(uint256 => Syndicate) private _syndicate; // azimuthPoint => syndicate token contract struct
+    mapping(address => uint256) private _addressToAzimuthPoint; // syndicate token address to azimuth point
+    mapping(address => bool) private _isRegisteredDeployer; // check if address is a registered deployer
 
     // Modifiers
     modifier onlyOwner() {
@@ -29,11 +31,7 @@ contract SyndicateRegistry is ISyndicateRegistry {
 
     modifier onlyValidDeployer() {
         // TODO check this logic; synidcateDeployer might need to be an array or have a better mapping?
-        require(
-            true,
-            // msg.sender == _syndicateDeployer[msg.sender].deployerAddress,
-            Unauthorized()
-        );
+        require(_isRegisteredDeployer[msg.sender], Unauthorized());
         _;
     }
 
@@ -113,23 +111,72 @@ contract SyndicateRegistry is ISyndicateRegistry {
         return _renounceOwnership();
     }
 
+    function getOwner() external view returns (address owner) {
+        return _owner;
+    }
+
+    function getPendingOwner() external view returns (address pendingOwner) {
+        return _pendingOwner;
+    }
+
+    function isRegisteredDeployer(
+        address checkAddress
+    ) external view returns (bool isRegistered) {
+        return _isRegisteredDeployer[checkAddress];
+    }
+
     // Internal Functions
+
     function _registerDeployer(
         SyndicateDeployerData calldata syndicateDeployerData
     ) internal returns (bool success) {
-        revert("Not yet implemented");
+        require(
+            syndicateDeployerData.deployerAddress != address(0),
+            "Deployer is not at the null address"
+        ); // make sure address is not address(0)
+        require(
+            !_isRegisteredDeployer[syndicateDeployerData.deployerAddress],
+            "Deployer is already registered"
+        );
+        _syndicateDeployers.push(syndicateDeployerData.deployerAddress);
+        _deployerData[
+            syndicateDeployerData.deployerAddress
+        ] = syndicateDeployerData;
+        _isRegisteredDeployer[syndicateDeployerData.deployerAddress] = true;
+
+        emit DeployerRegistered(
+            syndicateDeployerData.deployerAddress,
+            syndicateDeployerData.deployerVersion,
+            syndicateDeployerData.isActive
+        );
+
+        return true;
     }
 
     function _deactivateDeployer(
         SyndicateDeployerData calldata syndicateDeployerData
     ) internal returns (bool success) {
-        revert("Not yet implemented");
+        require(
+            _isRegisteredDeployer[syndicateDeployerData.deployerAddress],
+            "Deployer is not registered and thus cannot be deactivated"
+        );
+        _deployerData[
+            syndicateDeployerData.deployerAddress
+        ] = syndicateDeployerData;
+        return true;
     }
 
     function _reactivateDeployer(
         SyndicateDeployerData calldata syndicateDeployerData
     ) internal returns (bool succeess) {
-        revert("Not yet implemented");
+        require(
+            _isRegisteredDeployer[syndicateDeployerData.deployerAddress],
+            "Deployer is not registered and thus cannot be reactivated"
+        );
+        _deployerData[
+            syndicateDeployerData.deployerAddress
+        ] = syndicateDeployerData;
+        return true;
     }
 
     function _registerSyndicate(
