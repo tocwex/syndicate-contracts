@@ -20,8 +20,10 @@ install :; forge install foundry-rs/forge-std --no-commit && forge install openz
 update:; forge update
 
 build:; forge build
+build-warn:; forge build
 
-test :; forge test -vvvv
+test :; forge test -vv
+test-vvvv :; forge test -vvvv
 	
 snapshot :; forge snapshot
 
