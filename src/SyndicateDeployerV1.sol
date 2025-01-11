@@ -44,6 +44,8 @@ contract SyndicateDeployerV1 is ISyndicateDeployerV1 {
     // Constructor
     constructor() {
         i_registry = address(0);
+        _owner = msg.sender;
+        _feeRecipient = msg.sender;
     }
 
     // Functions
