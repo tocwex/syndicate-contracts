@@ -30,7 +30,7 @@ contract SyndicateRegistry is ISyndicateRegistry {
     }
 
     modifier onlyValidDeployer() {
-        // TODO check this logic; synidcateDeployer might need to be an array or have a better mapping?
+        // TODO check this logic; syndicateDeployer might need to be an array or have a better mapping?
         require(_isRegisteredDeployer[msg.sender], Unauthorized());
         _;
     }
@@ -75,7 +75,7 @@ contract SyndicateRegistry is ISyndicateRegistry {
 
     function registerSyndicate(
         Syndicate calldata syndicate
-    ) external returns (bool success) {
+    ) external onlyValidDeployer returns (bool success) {
         return _registerSyndicate(syndicate);
         // TODO this should only be callable by active deployers
         // where does the check happen to ensure there is a 1:1 mapping of @p to token?
@@ -125,6 +125,24 @@ contract SyndicateRegistry is ISyndicateRegistry {
         return _isRegisteredDeployer[checkAddress];
     }
 
+    function getDeployers()
+        external
+        view
+        returns (address[] memory syndicateDeployers)
+    {
+        return _syndicateDeployers;
+    }
+
+    function getDeployerData(
+        address deployerAddress
+    )
+        external
+        view
+        returns (SyndicateDeployerData memory syndicateDeployerData)
+    {
+        return _deployerData[deployerAddress];
+    }
+
     // Internal Functions
 
     function _registerDeployer(
@@ -154,28 +172,34 @@ contract SyndicateRegistry is ISyndicateRegistry {
     }
 
     function _deactivateDeployer(
+        // TODO determine if all the calldata is necessary, or should just be an address
         SyndicateDeployerData calldata syndicateDeployerData
     ) internal returns (bool success) {
+        address deployer = syndicateDeployerData.deployerAddress;
+        SyndicateDeployerData storage deployerData = _deployerData[deployer];
         require(
-            _isRegisteredDeployer[syndicateDeployerData.deployerAddress],
+            _isRegisteredDeployer[deployer],
             "Deployer is not registered and thus cannot be deactivated"
         );
-        _deployerData[
-            syndicateDeployerData.deployerAddress
-        ] = syndicateDeployerData;
+        require(deployerData.isActive, "Deployer already inactive");
+        deployerData.isActive = false;
+        emit DeployerDeactivated(deployer, false);
         return true;
     }
 
     function _reactivateDeployer(
+        // TODO determine if all the calldata is necessary, or should just be an address
         SyndicateDeployerData calldata syndicateDeployerData
     ) internal returns (bool succeess) {
+        address deployer = syndicateDeployerData.deployerAddress;
+        SyndicateDeployerData storage deployerData = _deployerData[deployer];
         require(
-            _isRegisteredDeployer[syndicateDeployerData.deployerAddress],
-            "Deployer is not registered and thus cannot be reactivated"
+            _isRegisteredDeployer[deployer],
+            "Deployer is not registered and thus cannot be deactivated"
         );
-        _deployerData[
-            syndicateDeployerData.deployerAddress
-        ] = syndicateDeployerData;
+        require(!deployerData.isActive, "Deployer already active");
+        deployerData.isActive = true;
+        emit DeployerReactivated(deployer, true);
         return true;
     }
 

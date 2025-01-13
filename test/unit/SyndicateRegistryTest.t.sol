@@ -122,4 +122,192 @@ contract SyndicateRegistryTest is Test {
             );
         }
     }
+
+    //// Deactivation Tests
+    function test_DeactivateRegisteredDeployerByOwner() public {
+        vm.prank(owner);
+        registry.registerDeployer(
+            ISyndicateRegistry.SyndicateDeployerData({
+                deployerAddress: address(deployerV1),
+                deployerVersion: 1,
+                isActive: true
+            })
+        );
+
+        ISyndicateRegistry.SyndicateDeployerData
+            memory dataBeforeDeactivation = registry.getDeployerData(
+                address(deployerV1)
+            );
+        assertEq(
+            dataBeforeDeactivation.isActive,
+            true,
+            "Deployer should be active at this stage"
+        );
+
+        vm.expectEmit(true, false, false, true); // index 1 has value, 2 and 3 no value, 4 has data for non-indexed values
+        emit ISyndicateRegistry.DeployerDeactivated(address(deployerV1), false);
+
+        vm.prank(owner);
+        registry.deactivateDeployer(
+            ISyndicateRegistry.SyndicateDeployerData({
+                deployerAddress: address(deployerV1),
+                deployerVersion: 1,
+                isActive: true
+            })
+        );
+        ISyndicateRegistry.SyndicateDeployerData memory currentData = registry
+            .getDeployerData(address(deployerV1));
+
+        assertEq(currentData.isActive, false, "Deployer should be deactivated");
+    }
+
+    function testFail_DeactivateRegisteredDeployerByNotOwner() public {
+        vm.prank(owner);
+        registry.registerDeployer(
+            ISyndicateRegistry.SyndicateDeployerData({
+                deployerAddress: address(deployerV1),
+                deployerVersion: 1,
+                isActive: true
+            })
+        );
+
+        ISyndicateRegistry.SyndicateDeployerData
+            memory dataBeforeDeactivation = registry.getDeployerData(
+                address(deployerV1)
+            );
+        assertEq(
+            dataBeforeDeactivation.isActive,
+            true,
+            "Deployer should be active at this stage"
+        );
+
+        vm.prank(bob);
+        registry.deactivateDeployer(
+            ISyndicateRegistry.SyndicateDeployerData({
+                deployerAddress: address(deployerV1),
+                deployerVersion: 1,
+                isActive: true
+            })
+        );
+    }
+
+    //// Reactivation Tests
+
+    function test_ReactivateRegisteredDeployerByOwner() public {
+        // Register the deployer
+        vm.prank(owner);
+        registry.registerDeployer(
+            ISyndicateRegistry.SyndicateDeployerData({
+                deployerAddress: address(deployerV1),
+                deployerVersion: 1,
+                isActive: true
+            })
+        );
+
+        ISyndicateRegistry.SyndicateDeployerData
+            memory dataBeforeDeactivation = registry.getDeployerData(
+                address(deployerV1)
+            );
+        assertEq(
+            dataBeforeDeactivation.isActive,
+            true,
+            "Deployer should be active at this stage"
+        );
+
+        vm.expectEmit(true, false, false, true); // index 1 has value, 2 and 3 no value, 4 has data for non-indexed values
+        emit ISyndicateRegistry.DeployerDeactivated(address(deployerV1), false);
+
+        // Deactivate the deployer
+        vm.prank(owner);
+        registry.deactivateDeployer(
+            ISyndicateRegistry.SyndicateDeployerData({
+                deployerAddress: address(deployerV1),
+                deployerVersion: 1,
+                isActive: true
+            })
+        );
+        ISyndicateRegistry.SyndicateDeployerData memory currentData = registry
+            .getDeployerData(address(deployerV1));
+
+        assertEq(
+            currentData.isActive,
+            false,
+            "Deployer should be deactivated at this stage"
+        );
+
+        // Reactivate the Deployer
+        vm.expectEmit(true, false, false, true); // index 1 has value, 2 and 3 no value, 4 has data for non-indexed values
+        emit ISyndicateRegistry.DeployerReactivated(address(deployerV1), true);
+
+        vm.prank(owner);
+        registry.reactivateDeployer(
+            ISyndicateRegistry.SyndicateDeployerData({
+                deployerAddress: address(deployerV1),
+                deployerVersion: 1,
+                isActive: true
+            })
+        );
+
+        ISyndicateRegistry.SyndicateDeployerData memory newData = registry
+            .getDeployerData(address(deployerV1));
+
+        assertEq(
+            newData.isActive,
+            true,
+            "Deployer should be reactivated at this stage"
+        );
+    }
+
+    function testFail_ReactivateRegisteredDeployerByNotOwner() public {
+        // Register the deployer
+        vm.prank(owner);
+        registry.registerDeployer(
+            ISyndicateRegistry.SyndicateDeployerData({
+                deployerAddress: address(deployerV1),
+                deployerVersion: 1,
+                isActive: true
+            })
+        );
+
+        ISyndicateRegistry.SyndicateDeployerData
+            memory dataBeforeDeactivation = registry.getDeployerData(
+                address(deployerV1)
+            );
+        assertEq(
+            dataBeforeDeactivation.isActive,
+            true,
+            "Deployer should be active at this stage"
+        );
+
+        vm.expectEmit(true, false, false, true); // index 1 has value, 2 and 3 no value, 4 has data for non-indexed values
+        emit ISyndicateRegistry.DeployerDeactivated(address(deployerV1), false);
+
+        // Deactivate the deployer
+        vm.prank(owner);
+        registry.deactivateDeployer(
+            ISyndicateRegistry.SyndicateDeployerData({
+                deployerAddress: address(deployerV1),
+                deployerVersion: 1,
+                isActive: true
+            })
+        );
+        ISyndicateRegistry.SyndicateDeployerData memory currentData = registry
+            .getDeployerData(address(deployerV1));
+
+        assertEq(
+            currentData.isActive,
+            false,
+            "Deployer should be deactivated at this stage"
+        );
+
+        // Attempt to reactivate the Deployer as non-owner
+        vm.prank(bob);
+        registry.reactivateDeployer(
+            ISyndicateRegistry.SyndicateDeployerData({
+                deployerAddress: address(deployerV1),
+                deployerVersion: 1,
+                isActive: true
+            })
+        );
+    }
 }
