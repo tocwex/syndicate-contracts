@@ -12,7 +12,8 @@ pragma solidity ^0.8.19;
 // upgradable contract proxy
 // ownable deployment factory, but no control over the ledger
 // TODO implement receive and fallback Functions
-import {ISyndicateRegistry} from "./SyndicateRegistry.sol";
+import {SyndicateRegistry} from "./SyndicateRegistry.sol";
+import {ISyndicateRegistry} from "./interfaces/ISyndicateRegistry.sol";
 import {SyndicateTokenV1} from "./SyndicateTokenV1.sol";
 import {ISyndicateDeployerV1} from "./interfaces/ISyndicateDeployerV1.sol";
 
@@ -21,7 +22,7 @@ contract SyndicateDeployerV1 is ISyndicateDeployerV1 {
 
     // Variables
     // TODO Add natspec
-    address private immutable i_registry; // = "0x123..."; TODO hardcode the registry contract; does this need to be a struct or is it better just as the registry address?
+    ISyndicateRegistry private immutable i_registry; // = "0x123..."; TODO hardcode the registry contract; does this work better as a constant?
     address private _owner;
     address private _pendingOwner;
     address private _feeRecipient;
@@ -32,20 +33,21 @@ contract SyndicateDeployerV1 is ISyndicateDeployerV1 {
     // Modifiers
     // TODO create 'isElligible' modifier?
     modifier onlyOwner() {
-        require(msg.sender == _owner, Unauthorized());
+        require(msg.sender == _owner, "Unauthorized");
         _;
     }
 
     modifier onlyPendingOwner() {
-        require(msg.sender == _pendingOwner, Unauthorized());
+        require(msg.sender == _pendingOwner, "Unauthorized");
         _;
     }
 
     // Constructor
-    constructor() {
-        i_registry = address(0);
+    constructor(uint256 fee) {
+        i_registry = ISyndicateRegistry(address(0));
         _owner = msg.sender;
         _feeRecipient = msg.sender;
+        _fee = fee;
     }
 
     // Functions
@@ -66,17 +68,11 @@ contract SyndicateDeployerV1 is ISyndicateDeployerV1 {
         address tokenOwner,
         uint256 initialSupply,
         uint256 maxSupply,
+        uint256 azimuthPoint,
         string memory name,
         string memory symbol
     ) external returns (address syndicateToken) {
-        return
-            _deploySyndicate(
-                tokenOwner,
-                initialSupply,
-                maxSupply,
-                name,
-                symbol
-            );
+        return _deploySyndicate(tokenOwner, initialSupply, maxSupply, azimuthPoint, name, symbol);
     }
 
     /// @inheritdoc ISyndicateDeployerV1
@@ -85,31 +81,19 @@ contract SyndicateDeployerV1 is ISyndicateDeployerV1 {
     }
 
     /// @inheritdoc ISyndicateDeployerV1
-    function changeFeeRecipient(
-        address newFeeRecipient
-    ) external returns (bool success) {
+    function changeFeeRecipient(address newFeeRecipient) external onlyOwner returns (bool success) {
         return _changeFeeRecipient(newFeeRecipient);
     }
 
-    function proposeNewOwner(
-        address proposedOwner
-    ) external onlyOwner returns (address pendingOwner, address owner) {
+    function proposeNewOwner(address proposedOwner) external onlyOwner returns (address pendingOwner, address owner) {
         return _proposeNewOwner(proposedOwner);
     }
 
-    function acceptOwnership()
-        external
-        onlyPendingOwner
-        returns (bool success)
-    {
+    function acceptOwnership() external onlyPendingOwner returns (bool success) {
         return _acceptOwnership();
     }
 
-    function rejectOwnership()
-        external
-        onlyPendingOwner
-        returns (bool success)
-    {
+    function rejectOwnership() external onlyPendingOwner returns (bool success) {
         return _rejectOwnership();
     }
 
@@ -122,9 +106,7 @@ contract SyndicateDeployerV1 is ISyndicateDeployerV1 {
     }
 
     /// @inheritdoc ISyndicateDeployerV1
-    function checkEligibility(
-        address user
-    ) external view returns (bool success) {
+    function checkEligibility(address user) external view returns (bool success) {
         // TODO Eligibility checks should vet: galaxy vs star vs galaxy planet vs planet vs L2
         // I'll probably need to include a local ERC6551 environment for this so until then
         // it likely just makes sense to check with the register if the proposed address already
@@ -132,8 +114,21 @@ contract SyndicateDeployerV1 is ISyndicateDeployerV1 {
         return _checkEligibility(user);
     }
 
+    function validateTokenOwnerChange(address proposedTokenOwner, uint256 azimuthPoint, address tbaImplementation)
+        external
+        view
+        returns (bool isValid)
+    {
+        return _validateTokenOwnerChange(proposedTokenOwner, azimuthPoint, tbaImplementation);
+    }
+
+    function registerTokenOwnerChange(address syndicateToken, address newOwner) external returns (bool success) {
+        // TODO Access controls for registering a token owner change
+        return _registerTokenOwnerChange(syndicateToken, newOwner);
+    }
+
     function getRegistry() external view returns (address syndicateRegistry) {
-        return i_registry;
+        return address(i_registry);
     }
 
     function getOwner() external view returns (address deployerOwner) {
@@ -157,25 +152,23 @@ contract SyndicateDeployerV1 is ISyndicateDeployerV1 {
         address tokenOwner,
         uint256 initialSupply,
         uint256 maxSupply,
+        uint256 azimuthPoint,
         string memory name,
         string memory symbol
     ) internal returns (address tokenContract) {
-        // token logic
-        // deploy function should call to the registry contract to:
-        // check that the deployer is active
-        // add the syndicate token to the registery
-        // TODO: create 'isElligible' modifier?
-        // require(
-        //     owner == msg.sender,
-        //     "Only the TBA of an L1 identity can launch a token"
-        // );
-        SyndicateTokenV1 syndicateTokenV1 = new SyndicateTokenV1(
-            tokenOwner,
-            initialSupply,
-            maxSupply,
-            name,
-            symbol
-        );
+        SyndicateTokenV1 syndicateTokenV1 = new SyndicateTokenV1(tokenOwner, initialSupply, maxSupply, name, symbol);
+        ISyndicateRegistry.SyndicateDeployerData memory syndicateDeployerData =
+            i_registry.getDeployerData(address(this));
+
+        ISyndicateRegistry.Syndicate memory syndicate = ISyndicateRegistry.Syndicate({
+            syndicateOwner: msg.sender,
+            syndicateContract: address(syndicateTokenV1),
+            syndicateDeploymentData: syndicateDeployerData,
+            syndicateLaunchTime: block.number,
+            azimuthPoint: azimuthPoint
+        });
+
+        i_registry.registerSyndicate(syndicate);
         emit TokenDeployed(address(syndicateTokenV1), tokenOwner);
         return address(syndicateTokenV1);
     }
@@ -185,16 +178,12 @@ contract SyndicateDeployerV1 is ISyndicateDeployerV1 {
         emit FeeUpdated(_fee);
     }
 
-    function _changeFeeRecipient(
-        address newFeeRecipient
-    ) internal returns (bool success) {
+    function _changeFeeRecipient(address newFeeRecipient) internal returns (bool success) {
         // change fee recipient logic
         revert("Not yet implemented");
     }
 
-    function _proposeNewOwner(
-        address proposedOwner
-    ) internal returns (address pendingOwner, address owner) {
+    function _proposeNewOwner(address proposedOwner) internal returns (address pendingOwner, address owner) {
         _pendingOwner = proposedOwner;
         // TODO emit event
         pendingOwner = proposedOwner;
@@ -207,6 +196,7 @@ contract SyndicateDeployerV1 is ISyndicateDeployerV1 {
         _owner = _pendingOwner;
         _pendingOwner = address(0);
         success = true;
+        // TODO should make a call to registry contract to update Syndicate mapping with the new owner
         // TODO emit event with previousOwner and newOwner
         return success;
     }
@@ -235,13 +225,33 @@ contract SyndicateDeployerV1 is ISyndicateDeployerV1 {
         success = true;
     }
 
-    function _checkEligibility(
-        address user
-    ) internal view returns (bool success) {
+    function _checkEligibility(address user) internal view returns (bool success) {
         address _user;
         user = _user;
         return true;
         // TODO actually implement eligibility checks via TBA value
     }
-    //// TODO implement internal functions and include in external function wrappers
+
+    function _validateTokenOwnerChange(address proposedTokenOwner, uint256 azimuthPoint, address tbaImplementation)
+        internal
+        returns (bool isValid)
+    {
+        require(azimuthPoint < 65535, "Galaxys and Stars only, brokie");
+        isValid = true;
+        // TODO figure out how to call out to ERC6551 registry
+        // pseudocode for actually trying to validate address is a tba
+        // tokenContract = azimuthContract address;
+        // tokenID = azimuthPoint;
+        // chainId = 1; // any considerations here for chainID?
+        //// I think we can call the current chain's ID, or select an id manually depending on what we want to do
+        // targetAddress = tbaRegistry.account(tbaImplementation, salt, chainId, tokenContract, tokenID);
+        //// any considerations for the salt here? presumably if we use the 'default' salt, V1 tokens will only be able to be controlled by the default address of any given implementation. This probably isn't the end of the world...
+        // require(targetAddress == proposedTokenOwner, "Not a valid TBA of your Urbit ID");
+        return isValid;
+    }
+
+    function _registerTokenOwnerChange(address syndicateToken, address newOwner) internal returns (bool isValid) {
+        i_registry.updateSyndicateOwner(syndicateToken, newOwner);
+        return true;
+    }
 }

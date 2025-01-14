@@ -41,14 +41,15 @@ interface ISyndicateDeployerV1 {
 
     // Errors
     // TODO Add natspec
-    error Unauthorized();
+    // error Unauthorized();
 
     // Functions
     /// @notice Called to deploy a syndicate token
     /// @dev
     /// @param tokenOwner eligibility checked address associated with onchain Urbit ID
     /// @param initialSupply The initial mint value
-    /// @param maxSupply The hard cap on the ERC20 supply
+    /// @param maxSupply The hard cap on the ERC20 supply; set to type(uint256).max for unlimited supply
+    /// @param azimuthPoint The tokenID / @ud of the associated Urbit ID
     /// @param name The token name per ERC20 standard
     /// @param symbol The token symbol per ERC20 standard
     /// @return syndicateToken The token contract address just deployed
@@ -56,6 +57,7 @@ interface ISyndicateDeployerV1 {
         address tokenOwner,
         uint256 initialSupply,
         uint256 maxSupply,
+        uint256 azimuthPoint,
         string memory name,
         string memory symbol
     ) external returns (address syndicateToken);

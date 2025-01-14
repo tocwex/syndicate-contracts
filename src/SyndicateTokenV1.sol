@@ -3,7 +3,6 @@
 pragma solidity ^0.8.19;
 
 // TODO update openzepplin contracts to ^5.0.0 ?
-// TODO implement receive and fallback Functions
 // TODO
 // For the initial version of the token launch feature in %slab, we will use a basic ERC20 factory contract that enables a visitor to pass in constructor values to set:
 //
@@ -14,6 +13,8 @@ pragma solidity ^0.8.19;
 // Token name
 // Token symbol
 //
+// TODO change state variables to private and implement getter functions
+
 import {ERC20} from "@openzepplin/token/ERC20/ERC20.sol";
 
 contract SyndicateTokenV1 is ERC20 {
@@ -28,19 +29,21 @@ contract SyndicateTokenV1 is ERC20 {
 
     //// Immutables
     address public immutable SYNDICATE_DEPLOYER; // Make static deployer address?
-    address public immutable i_owner; // TK is owner really immutable? TBA addresses *may* change, do we want there to be some possible ownership update logic?
-
+    uint256 public immutable maxSupply;
+    uint256 public immutable azimuthPoint;
     //// Regular State Variables
-    uint256 public maxSupply;
+    address public owner;
 
     // Events
     // Errors
+    // error Unauthorized();
 
     // Constructor
     constructor(
         address _owner,
         uint256 _initialSupply,
         uint256 _maxSupply,
+        uint256 _azimuthPoint,
         string memory _name,
         string memory _symbol
     ) ERC20(_name, _symbol) {
@@ -48,9 +51,16 @@ contract SyndicateTokenV1 is ERC20 {
             msg.sender == SYNDICATE_DEPLOYER,
             "Syndicate Tokens must be deployed from the Syndicate factory contract"
         );
-        i_owner = _owner;
+        owner = _owner;
         maxSupply = _maxSupply;
+        azimuthPoint = _azimuthPoint;
         _mint(msg.sender, _initialSupply); // totalSupply is managed by _mint and _burn fuctions
+    }
+
+    // Modifiers
+    modifier onlyOwner() {
+        require(msg.sender == owner, "Unauthorized");
+        _;
     }
 
     // Functions
@@ -66,6 +76,17 @@ contract SyndicateTokenV1 is ERC20 {
 
     //// external
 
+    function mint(address account, uint256 amount) external onlyOwner {
+        return _mint(account, amount);
+    }
+
+    function updateOwner(
+        address newOwner,
+        address tbaImplementation
+    ) external onlyOwner returns (bool success) {
+        return _updateOwner(newOwner, tbaImplementation);
+    }
+
     //// public
 
     //// internal
@@ -74,10 +95,29 @@ contract SyndicateTokenV1 is ERC20 {
             totalSupply() + amount <= maxSupply,
             "ERC20: Mint over maxSupply limit"
         );
-        require(msg.sender == i_owner, "ERC20: Owner is only minter");
         super._mint(account, amount);
     }
 
+    function _updateOwner(
+        address newOwner,
+        address tbaImplementation
+    ) internal returns (bool success) {
+        success = false;
+        owner = newOwner;
+        // TODO figure out how to check that the new owner is a valid owner.
+        // PSEUDOCODE
+        // proposedTokenOwner = newOwner;
+        // proposedTbaImplementation = tbaImplementation;
+        // calculatedOwner = syndicateDeployerV1.validateTokenOwnerChange(
+        //      proposedTokenOwner,
+        //      azimuthPoint,
+        //      tbaImplementation
+        // );
+        // require(newOwner == calculatedOwner, "new owner must be TBA controlled by your Urbit ID");
+        // success = true;
+        // This logic could occur a few ways; I could include a warning flag in the registry that the owner is not the original owner. Or I could rely on an eligibility check in the deployer contract. I think probably the right way to do this is to look at the deployer contract and validate there? does that mean I need to import the deployer interface here to the ERC20 contract?
+        return success;
+    }
     //// private
     //// view / pure
 }
