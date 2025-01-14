@@ -48,8 +48,7 @@ contract SyndicateTokenV1 is ERC20 {
         string memory _symbol
     ) ERC20(_name, _symbol) {
         require(
-            msg.sender == SYNDICATE_DEPLOYER,
-            "Syndicate Tokens must be deployed from the Syndicate factory contract"
+            msg.sender == SYNDICATE_DEPLOYER, "Syndicate Tokens must be deployed from the Syndicate factory contract"
         );
         owner = _owner;
         maxSupply = _maxSupply;
@@ -80,42 +79,37 @@ contract SyndicateTokenV1 is ERC20 {
         return _mint(account, amount);
     }
 
-    function updateOwner(
-        address newOwner,
-        address tbaImplementation
-    ) external onlyOwner returns (bool success) {
-        return _updateOwner(newOwner, tbaImplementation);
+    function updateOwnershipTba(address newOwner, address tbaImplementation)
+        external
+        onlyOwner
+        returns (bool success)
+    {
+        return _updateOwnershipTba(newOwner, tbaImplementation);
     }
 
     //// public
 
     //// internal
     function _mint(address account, uint256 amount) internal override {
-        require(
-            totalSupply() + amount <= maxSupply,
-            "ERC20: Mint over maxSupply limit"
-        );
+        require(totalSupply() + amount <= maxSupply, "ERC20: Mint over maxSupply limit");
         super._mint(account, amount);
     }
 
-    function _updateOwner(
-        address newOwner,
-        address tbaImplementation
-    ) internal returns (bool success) {
+    function _updateOwnershipTba(address newOwner, address tbaImplementation) internal returns (bool success) {
         success = false;
+
+        require(
+            true,
+            // PSEDUOCODE to check if new address is valid owner; should return true
+            // syndicateDeployerV1.validateTokenOwnerChange(
+            //      newOwner,
+            //      azimuthPoint,
+            //      tbaImplementation
+            // )
+            "Must be valid TBA address for Urbit ID"
+        );
+        success = true;
         owner = newOwner;
-        // TODO figure out how to check that the new owner is a valid owner.
-        // PSEUDOCODE
-        // proposedTokenOwner = newOwner;
-        // proposedTbaImplementation = tbaImplementation;
-        // calculatedOwner = syndicateDeployerV1.validateTokenOwnerChange(
-        //      proposedTokenOwner,
-        //      azimuthPoint,
-        //      tbaImplementation
-        // );
-        // require(newOwner == calculatedOwner, "new owner must be TBA controlled by your Urbit ID");
-        // success = true;
-        // This logic could occur a few ways; I could include a warning flag in the registry that the owner is not the original owner. Or I could rely on an eligibility check in the deployer contract. I think probably the right way to do this is to look at the deployer contract and validate there? does that mean I need to import the deployer interface here to the ERC20 contract?
         return success;
     }
     //// private
