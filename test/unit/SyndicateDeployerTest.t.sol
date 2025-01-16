@@ -16,6 +16,8 @@ contract SyndicateDeployerTest is Test {
     address public owner;
     address public alice;
     address public bob;
+    uint256 public fee = 100000000000000000;
+    address public registryAddress;
 
     function setUp() public {
         owner = vm.envAddress("PUBLIC_KEY_0");
@@ -23,8 +25,9 @@ contract SyndicateDeployerTest is Test {
         bob = makeAddr("bob");
 
         registry = new SyndicateRegistry();
+        registryAddress = address(registry);
         vm.prank(owner);
-        deployerV1 = new SyndicateDeployerV1();
+        deployerV1 = new SyndicateDeployerV1(registryAddress, fee);
     }
 
     function test_InitialDeployerOwner() public view {

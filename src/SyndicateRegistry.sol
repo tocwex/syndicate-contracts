@@ -54,53 +54,58 @@ contract SyndicateRegistry is ISyndicateRegistry {
     }
 
     //// External Functions
-    function registerDeployer(SyndicateDeployerData calldata syndicateDeployerData)
-        external
-        onlyOwner
-        returns (bool success)
-    {
+    function registerDeployer(
+        SyndicateDeployerData calldata syndicateDeployerData
+    ) external onlyOwner returns (bool success) {
         return _registerDeployer(syndicateDeployerData);
         // Do we want to limit to one deployer per version? I suspect 'yes'
     }
 
-    function deactivateDeployer(SyndicateDeployerData calldata syndicateDeployerData)
-        external
-        onlyOwner
-        returns (bool success)
-    {
+    function deactivateDeployer(
+        SyndicateDeployerData calldata syndicateDeployerData
+    ) external onlyOwner returns (bool success) {
         return _deactivateDeployer(syndicateDeployerData);
     }
 
-    function reactivateDeployer(SyndicateDeployerData calldata syndicateDeployerData)
-        external
-        onlyOwner
-        returns (bool success)
-    {
+    function reactivateDeployer(
+        SyndicateDeployerData calldata syndicateDeployerData
+    ) external onlyOwner returns (bool success) {
         return _reactivateDeployer(syndicateDeployerData);
     }
 
-    function registerSyndicate(Syndicate calldata syndicate) external onlyValidDeployer returns (bool success) {
+    function registerSyndicate(
+        Syndicate calldata syndicate
+    ) external onlyValidDeployer returns (bool success) {
         return _registerSyndicate(syndicate);
         // where does the check happen to ensure there is a 1:1 mapping of @p to token?
     }
 
-    function updateSyndicateOwner(address syndicateToken, address newOwner)
-        external
-        onlyValidDeployer
-        returns (bool success)
-    {
-        return _updateSyndicateOwner(syndicateToken, newOwner);
+    function updateSyndicateOwnerRegistration(
+        address syndicateToken,
+        address newOwner
+    ) external onlyValidDeployer returns (bool success) {
+        return _updateSyndicateOwnerRegistration(syndicateToken, newOwner);
     }
 
-    function proposeNewOwner(address proposedOwner) external onlyOwner returns (address pendingOwner, address owner) {
+    function proposeNewOwner(
+        address proposedOwner
+    ) external onlyOwner returns (address pendingOwner, address owner) {
         return _proposeNewOwner(proposedOwner);
     }
 
-    function acceptOwnership() external onlyPendingOwner returns (bool success) {
+    function acceptOwnership()
+        external
+        onlyPendingOwner
+        returns (bool success)
+    {
         return _acceptOwnership();
     }
 
-    function rejectOwnership() external onlyPendingOwner returns (bool success) {
+    function rejectOwnership()
+        external
+        onlyPendingOwner
+        returns (bool success)
+    {
         return _rejectOwnership();
     }
 
@@ -120,15 +125,23 @@ contract SyndicateRegistry is ISyndicateRegistry {
         return _pendingOwner;
     }
 
-    function isRegisteredDeployer(address checkAddress) external view returns (bool isRegistered) {
+    function isRegisteredDeployer(
+        address checkAddress
+    ) external view returns (bool isRegistered) {
         return _isRegisteredDeployer[checkAddress];
     }
 
-    function getDeployers() external view returns (address[] memory syndicateDeployers) {
+    function getDeployers()
+        external
+        view
+        returns (address[] memory syndicateDeployers)
+    {
         return _syndicateDeployers;
     }
 
-    function getDeployerData(address deployerAddress)
+    function getDeployerData(
+        address deployerAddress
+    )
         external
         view
         returns (SyndicateDeployerData memory syndicateDeployerData)
@@ -138,15 +151,27 @@ contract SyndicateRegistry is ISyndicateRegistry {
 
     // Internal Functions
 
-    function _registerDeployer(SyndicateDeployerData calldata syndicateDeployerData) internal returns (bool success) {
-        require(syndicateDeployerData.deployerAddress != address(0), "Deployer is not at the null address"); // make sure address is not address(0)
-        require(!_isRegisteredDeployer[syndicateDeployerData.deployerAddress], "Deployer is already registered");
+    function _registerDeployer(
+        SyndicateDeployerData calldata syndicateDeployerData
+    ) internal returns (bool success) {
+        require(
+            syndicateDeployerData.deployerAddress != address(0),
+            "Deployer is not at the null address"
+        ); // make sure address is not address(0)
+        require(
+            !_isRegisteredDeployer[syndicateDeployerData.deployerAddress],
+            "Deployer is already registered"
+        );
         _syndicateDeployers.push(syndicateDeployerData.deployerAddress);
-        _deployerData[syndicateDeployerData.deployerAddress] = syndicateDeployerData;
+        _deployerData[
+            syndicateDeployerData.deployerAddress
+        ] = syndicateDeployerData;
         _isRegisteredDeployer[syndicateDeployerData.deployerAddress] = true;
 
         emit DeployerRegistered(
-            syndicateDeployerData.deployerAddress, syndicateDeployerData.deployerVersion, syndicateDeployerData.isActive
+            syndicateDeployerData.deployerAddress,
+            syndicateDeployerData.deployerVersion,
+            syndicateDeployerData.isActive
         );
 
         return true;
@@ -158,7 +183,10 @@ contract SyndicateRegistry is ISyndicateRegistry {
     ) internal returns (bool success) {
         address deployer = syndicateDeployerData.deployerAddress;
         SyndicateDeployerData storage deployerData = _deployerData[deployer];
-        require(_isRegisteredDeployer[deployer], "Deployer is not registered and thus cannot be deactivated");
+        require(
+            _isRegisteredDeployer[deployer],
+            "Deployer is not registered and thus cannot be deactivated"
+        );
         require(deployerData.isActive, "Deployer already inactive");
         deployerData.isActive = false;
         emit DeployerDeactivated(deployer, false);
@@ -171,24 +199,37 @@ contract SyndicateRegistry is ISyndicateRegistry {
     ) internal returns (bool succeess) {
         address deployer = syndicateDeployerData.deployerAddress;
         SyndicateDeployerData storage deployerData = _deployerData[deployer];
-        require(_isRegisteredDeployer[deployer], "Deployer is not registered and thus cannot be deactivated");
+        require(
+            _isRegisteredDeployer[deployer],
+            "Deployer is not registered and thus cannot be deactivated"
+        );
         require(!deployerData.isActive, "Deployer already active");
         deployerData.isActive = true;
         emit DeployerReactivated(deployer, true);
         return true;
     }
 
-    function _registerSyndicate(Syndicate calldata syndicate) internal returns (bool success) {
-        revert("Not yet implemented");
+    function _registerSyndicate(
+        Syndicate calldata syndicate
+    ) internal returns (bool success) {
+        _syndicate[syndicate.azimuthPoint] = syndicate;
+        success = true;
         // should emit SyndicateRegistered event
     }
 
-    function _updateSyndicateOwner(address syndicateToken, address newOwner) internal returns (bool success) {
-        revert("Not yet implemented");
+    function _updateSyndicateOwnerRegistration(
+        address syndicateToken,
+        address newOwner
+    ) internal returns (bool success) {
+        uint256 syndicatePoint = _addressToAzimuthPoint[syndicateToken];
+        _syndicate[syndicatePoint].syndicateOwner = newOwner;
+        success = true;
         // should emit SyndicateOwnerUpdated event
     }
 
-    function _proposeNewOwner(address proposedOwner) internal returns (address pendingOwner, address owner) {
+    function _proposeNewOwner(
+        address proposedOwner
+    ) internal returns (address pendingOwner, address owner) {
         _pendingOwner = proposedOwner;
         // TODO emit event
         pendingOwner = proposedOwner;

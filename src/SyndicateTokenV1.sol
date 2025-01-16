@@ -16,6 +16,7 @@ pragma solidity ^0.8.19;
 // TODO change state variables to private and implement getter functions
 
 import {ERC20} from "@openzepplin/token/ERC20/ERC20.sol";
+import {ISyndicateDeployerV1} from "../src/interfaces/ISyndicateDeployerV1.sol";
 
 contract SyndicateTokenV1 is ERC20 {
     // ERC20 Parent Contract Variables
@@ -28,11 +29,11 @@ contract SyndicateTokenV1 is ERC20 {
     //// Constants
 
     //// Immutables
-    address public immutable SYNDICATE_DEPLOYER; // Make static deployer address?
-    uint256 public immutable maxSupply;
-    uint256 public immutable azimuthPoint;
+    ISyndicateDeployerV1 public immutable i_syndicateDeployer; // Make static deployer address?
+    uint256 private immutable i_maxSupply;
+    uint256 private immutable i_azimuthPoint;
     //// Regular State Variables
-    address public owner;
+    address private _owner;
 
     // Events
     // Errors
@@ -40,25 +41,28 @@ contract SyndicateTokenV1 is ERC20 {
 
     // Constructor
     constructor(
-        address _owner,
-        uint256 _initialSupply,
-        uint256 _maxSupply,
-        uint256 _azimuthPoint,
-        string memory _name,
-        string memory _symbol
-    ) ERC20(_name, _symbol) {
+        address deployerAddress,
+        address owner,
+        uint256 initialSupply,
+        uint256 maxSupply,
+        uint256 azimuthPoint,
+        string memory name,
+        string memory symbol
+    ) ERC20(name, symbol) {
+        i_syndicateDeployer = ISyndicateDeployerV1(deployerAddress);
         require(
-            msg.sender == SYNDICATE_DEPLOYER, "Syndicate Tokens must be deployed from the Syndicate factory contract"
+            msg.sender == deployerAddress,
+            "Syndicate Tokens must be deployed from the Syndicate factory contract"
         );
-        owner = _owner;
-        maxSupply = _maxSupply;
-        azimuthPoint = _azimuthPoint;
-        _mint(msg.sender, _initialSupply); // totalSupply is managed by _mint and _burn fuctions
+        _owner = owner;
+        i_maxSupply = maxSupply;
+        i_azimuthPoint = azimuthPoint;
+        _mint(owner, initialSupply); // totalSupply is managed by _mint and _burn fuctions
     }
 
     // Modifiers
     modifier onlyOwner() {
-        require(msg.sender == owner, "Unauthorized");
+        require(msg.sender == _owner, "Unauthorized");
         _;
     }
 
@@ -79,37 +83,65 @@ contract SyndicateTokenV1 is ERC20 {
         return _mint(account, amount);
     }
 
-    function updateOwnershipTba(address newOwner, address tbaImplementation)
-        external
-        onlyOwner
-        returns (bool success)
-    {
+    function updateOwnershipTba(
+        address newOwner,
+        address tbaImplementation
+    ) external onlyOwner returns (bool success) {
         return _updateOwnershipTba(newOwner, tbaImplementation);
+    }
+
+    function getDeployerAddress() external view returns (address) {
+        return address(i_syndicateDeployer);
+    }
+
+    function getMaxSupply() external view returns (uint256) {
+        return i_maxSupply;
+    }
+
+    function getAzimuthPoint() external view returns (uint256) {
+        return i_azimuthPoint;
+    }
+
+    function getOwner() external view returns (address) {
+        return _owner;
     }
 
     //// public
 
     //// internal
     function _mint(address account, uint256 amount) internal override {
-        require(totalSupply() + amount <= maxSupply, "ERC20: Mint over maxSupply limit");
+        require(
+            totalSupply() + amount <= i_maxSupply,
+            "ERC20: Mint over maxSupply limit"
+        );
         super._mint(account, amount);
     }
 
-    function _updateOwnershipTba(address newOwner, address tbaImplementation) internal returns (bool success) {
-        success = false;
-
-        require(
-            true,
-            // PSEDUOCODE to check if new address is valid owner; should return true
-            // syndicateDeployerV1.validateTokenOwnerChange(
-            //      newOwner,
-            //      azimuthPoint,
-            //      tbaImplementation
-            // )
-            "Must be valid TBA address for Urbit ID"
+    function _updateOwnershipTba(
+        address newOwner,
+        address tbaImplementation
+    ) internal returns (bool success) {
+        // Checks
+        bool isValid = i_syndicateDeployer.validateTokenOwnerChange(
+            newOwner,
+            i_azimuthPoint,
+            tbaImplementation
         );
+        require(
+            isValid,
+            "New Owner must be a valid TBA associated with Urbit ID"
+        );
+
+        // internal changes
+        _owner = newOwner;
         success = true;
-        owner = newOwner;
+
+        // external calls
+        bool registeryUpdated = i_syndicateDeployer.registerTokenOwnerChange(
+            address(this),
+            newOwner
+        );
+        require(registeryUpdated, "Registry must have updated to proceed");
         return success;
     }
     //// private

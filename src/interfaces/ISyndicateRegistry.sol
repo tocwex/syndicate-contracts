@@ -17,13 +17,13 @@ interface ISyndicateRegistry {
         SyndicateDeployerData syndicateDeploymentData; // 32 bytes / 1 slot
         uint256 syndicateLaunchTime; // 32 bytes / blockheight
         uint256 azimuthPoint; // 32 bytes / token ID of Azimuth NFT
-            // NOTE: Azimuth point's are included and explicitly not filtered by
-            // location in the hierarchy in the Registry contract. Filtering or
-            // additional permissions are to be implemented either on frontend
-            // interfaces, or in the deployer logic
-            // Note that this could be a uint16 but will take a full slot anyways
-            // so leaving as uint256 for future optionality (Groundwire Comet
-            // Tokens, anyone?)
+        // NOTE: Azimuth point's are included and explicitly not filtered by
+        // location in the hierarchy in the Registry contract. Filtering or
+        // additional permissions are to be implemented either on frontend
+        // interfaces, or in the deployer logic
+        // Note that this could be a uint16 but will take a full slot anyways
+        // so leaving as uint256 for future optionality (Groundwire Comet
+        // Tokens, anyone?)
     }
 
     // Events
@@ -33,7 +33,11 @@ interface ISyndicateRegistry {
     /// @param syndicateDeployer The address of the newly registered Deployer
     /// @param deployerVersion The version number of the deployer
     /// @param isActive The registration eligibility of the deployer, should be true on initial registration
-    event DeployerRegistered(address indexed syndicateDeployer, uint64 deployerVersion, bool isActive);
+    event DeployerRegistered(
+        address indexed syndicateDeployer,
+        uint64 deployerVersion,
+        bool isActive
+    );
 
     /// @notice emitted when a deployer is deactivated on the registry
     /// @dev Deativation of a deployer sets isActive to false, but retains data in contract storage for reference purposes
@@ -53,9 +57,17 @@ interface ISyndicateRegistry {
     /// @param deployerAddress The contract address of the SyndicateDeployer used
     /// @param syndicateToken The contract address of the newly registered token
     /// @param owner the ownership address of the newly registered token
-    event SyndicateRegistered(address indexed deployerAddress, address indexed syndicateToken, address indexed owner);
+    event SyndicateRegistered(
+        address indexed deployerAddress,
+        address indexed syndicateToken,
+        address indexed owner
+    );
 
-    event SyndicateOwnerUpdated(address indexed deployerAddress, address indexed syndicateToken, address indexed owner);
+    event SyndicateOwnerUpdated(
+        address indexed deployerAddress,
+        address indexed syndicateToken,
+        address indexed owner
+    );
 
     //// Ownership Events
     /// @notice emitted when an ownership transfer is proposed
@@ -97,19 +109,25 @@ interface ISyndicateRegistry {
     /// @dev should be restricted to onlyOwner
     /// @param syndicateDeployerData See {SyndicateDeployerData} for struct documentation
     /// @return success The confirmation that the deployer has been added to the registry
-    function registerDeployer(SyndicateDeployerData calldata syndicateDeployerData) external returns (bool success);
+    function registerDeployer(
+        SyndicateDeployerData calldata syndicateDeployerData
+    ) external returns (bool success);
 
     /// @notice Called to deactivate deployer in the Syndicate Registry
     /// @dev Function should be restricted to onlyOwner
     /// @param syndicateDeployerData See {SyndicateDeployerData} for struct documentation
     /// @return success The confirmation that the deployer has been deactivated in the registry
-    function deactivateDeployer(SyndicateDeployerData calldata syndicateDeployerData) external returns (bool success);
+    function deactivateDeployer(
+        SyndicateDeployerData calldata syndicateDeployerData
+    ) external returns (bool success);
 
     /// @notice Called to reactivate deployer in the Syndicate Registry
     /// @dev Function should be restricted to onlyOwner
     /// @param syndicateDeployerData See {SyndicateDeployerData} for struct documentation
     /// @return success The confirmation that the deployer has been reactivated in the registry
-    function reactivateDeployer(SyndicateDeployerData calldata syndicateDeployerData) external returns (bool success);
+    function reactivateDeployer(
+        SyndicateDeployerData calldata syndicateDeployerData
+    ) external returns (bool success);
 
     //// Syndicate registry functions
 
@@ -118,20 +136,28 @@ interface ISyndicateRegistry {
     /// @param syndicate See {Syndicate} for struct documentation
     // TODO what parameters are to be provided by the deployer contract? what should be returned
     // from this function? is it really just a (bool success) or perhaps nothing?
-    function registerSyndicate(Syndicate calldata syndicate) external returns (bool success);
+    function registerSyndicate(
+        Syndicate calldata syndicate
+    ) external returns (bool success);
 
     /// @notice Called by an active syndicate deployer to update the owner of a Syndicate token contract
     /// @dev should only be callable by an active Syndicate Deployer
-    /// @param syndicate See {Syndicate} for struct documentation
+    /// @param syndicateToken The address of the syndicate token contract
+    /// @param newOwner The address of the proposed new owner of the syndicateToken contact
     /// @return success Boolean for transaction completion
-    function updateSyndicateOwner(address syndicateToken, address newOwner) external returns (bool success);
+    function updateSyndicateOwnerRegistration(
+        address syndicateToken,
+        address newOwner
+    ) external returns (bool success);
 
     //// Ownership transfer functions
 
     /// @notice called calldata by Syndicate Registry owner to propose new ownership keys
     /// @dev should only be callable by current contract owner
     /// @param pendingOwner The address of the proposed new owner
-    function proposeNewOwner(address proposedOwner) external returns (address pendingOwner, address owner);
+    function proposeNewOwner(
+        address proposedOwner
+    ) external returns (address pendingOwner, address owner);
 
     /// @notice Called by pendingOwner to accept ownership of Syndicate Registry contract
     /// @dev should only be callable by pendingOwner
@@ -164,16 +190,23 @@ interface ISyndicateRegistry {
     /// @notice Getter function to check if an address is a registered deployer
     /// @dev Existence of deployer does not guarantee that the deployer is active; call getDeployerData for that state.
     /// @return isRegistered Boolean indicating that the address is including in the registry as a deployer
-    function isRegisteredDeployer(address checkAddress) external view returns (bool isRegistered);
+    function isRegisteredDeployer(
+        address checkAddress
+    ) external view returns (bool isRegistered);
 
     /// @notice Getter function to retrieve an array of addresses for all registered deployers
     /// @return syndicateDeployers Array of addresses which are valid Deployer contracts, which may or may not be active.
-    function getDeployers() external view returns (address[] memory syndicateDeployers);
+    function getDeployers()
+        external
+        view
+        returns (address[] memory syndicateDeployers);
 
     /// @notice Getter function to retrieve the contents of a SyndicateDeployerData struct for the given address
     /// @param deployerAddress The address of a deployer contract in the syndicateDeployers array
     /// @return syndicateDeployerData A struct containing {SyndicateDeployerData} data
-    function getDeployerData(address deployerAddress)
+    function getDeployerData(
+        address deployerAddress
+    )
         external
         view
         returns (SyndicateDeployerData memory syndicateDeployerData);

@@ -5,7 +5,7 @@
 pragma solidity ^0.8.19;
 
 import {Test} from "@forge-std/Test.sol";
-import {console} from "@forge-std/console.sol";
+import {console2} from "../../lib/forge-std/src/console2.sol";
 import {SyndicateTokenV1} from "../../src/SyndicateTokenV1.sol";
 import {SyndicateDeployerV1} from "../../src/SyndicateDeployerV1.sol";
 import {ISyndicateDeployerV1} from "../../src/interfaces/ISyndicateDeployerV1.sol";
@@ -19,6 +19,10 @@ contract SyndicateRegistryTest is Test {
     address public alice;
     address public bob;
     address public deployerAddress;
+    address public syndicateOwner;
+    uint256 public fee = 100000000000000000;
+    address public registryAddress;
+    SyndicateTokenV1 public launchedSyndicate;
 
     function setUp() public {
         deployerAddress = vm.envAddress("PUBLIC_KEY_0");
@@ -28,11 +32,50 @@ contract SyndicateRegistryTest is Test {
 
         vm.startPrank(owner);
         registry = new SyndicateRegistry();
-        deployerV1 = new SyndicateDeployerV1();
+        registryAddress = address(registry);
+        deployerV1 = new SyndicateDeployerV1(registryAddress, fee);
         vm.stopPrank();
     }
 
+    // Helper functions
+    //// Registry and Deployer are live
+    function _registryAndDeployer() public {
+        vm.startPrank(owner);
+        registry.registerDeployer(
+            ISyndicateRegistry.SyndicateDeployerData({
+                deployerAddress: address(deployerV1),
+                deployerVersion: 1,
+                isActive: true
+            })
+        );
+        vm.stopPrank();
+    }
+
+    function _launchSyndicateToken() public {
+        syndicateOwner = makeAddr("syndicateOwner");
+        vm.prank(syndicateOwner);
+        address syndicateTokenV1 = deployerV1.deploySyndicate(
+            1000000000000000000000000,
+            21000000000000000000000000,
+            256,
+            "Test Token",
+            "TES"
+        );
+        console2.log(
+            "Syndicate Contract Launched at: ",
+            address(syndicateTokenV1)
+        );
+        launchedSyndicate = SyndicateTokenV1(payable(syndicateTokenV1));
+        console2.log("syndicateOwner: ", launchedSyndicate.getOwner());
+        console2.log("initialSupply: ", launchedSyndicate.totalSupply());
+        console2.log("maxSupply: ", launchedSyndicate.getMaxSupply());
+        console2.log("azimiuthPoint: ", launchedSyndicate.getAzimuthPoint());
+        console2.log("name: ", launchedSyndicate.name());
+        console2.log("symbol: ", launchedSyndicate.symbol());
+    }
+
     // Ownership Transfer Tests
+
     function test_InitialRegistryOwner() public view {
         assertEq(
             owner,
@@ -65,7 +108,14 @@ contract SyndicateRegistryTest is Test {
         );
     }
 
-    // Registration Tests
+    //// TODO add reject ownership proposal test
+    //// TODO add nullify ownership proposal test
+    //// TODO add renounce ownership test
+
+    // Getter function tests
+    //// TODO add test for getter functions if necessary
+
+    // Deployer Registration Tests
     function test_RegisterNewDeployerByOwner() public {
         vm.expectEmit(true, false, false, true); // index 1 has value, 2 and 3 no value, 4 has data for non-indexed values
         emit ISyndicateRegistry.DeployerRegistered(
@@ -90,6 +140,8 @@ contract SyndicateRegistryTest is Test {
         );
         // TODO add expect Emit
     }
+
+    // TODO add test of adding a second deployer
 
     function testFail_RegisterNewDeployerByNotOwner() public {
         vm.prank(bob);
@@ -308,6 +360,39 @@ contract SyndicateRegistryTest is Test {
                 deployerVersion: 1,
                 isActive: true
             })
+        );
+    }
+
+    function test_LaunchAndRegisterNewSyndicate() public {
+        _registryAndDeployer();
+        _launchSyndicateToken();
+        assertEq(
+            launchedSyndicate.getOwner(),
+            syndicateOwner,
+            "Syndicate owner mismatch"
+        );
+    }
+
+    function test_UpdateSyndicateOwnershipAddress() public {
+        _registryAndDeployer();
+        _launchSyndicateToken();
+        vm.prank(address(syndicateOwner));
+        address newOwnershipTba = makeAddr("newTBA");
+        address tbaImplementationAddress = makeAddr("tbaImplementation"); // currently this check returns true no matter the inputs as long as the azimuthPoint of the calling SyndicateTokenV1 contract is <65535
+        launchedSyndicate.updateOwnershipTba(
+            newOwnershipTba,
+            tbaImplementationAddress
+        );
+        console2.log(
+            "New Owner of ",
+            address(launchedSyndicate),
+            "is: ",
+            launchedSyndicate.getOwner()
+        );
+        assertEq(
+            newOwnershipTba,
+            launchedSyndicate.getOwner(),
+            "Syndicate Token Owner failed to update properly"
         );
     }
 }

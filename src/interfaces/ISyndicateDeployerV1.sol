@@ -46,7 +46,6 @@ interface ISyndicateDeployerV1 {
     // Functions
     /// @notice Called to deploy a syndicate token
     /// @dev
-    /// @param tokenOwner eligibility checked address associated with onchain Urbit ID
     /// @param initialSupply The initial mint value
     /// @param maxSupply The hard cap on the ERC20 supply; set to type(uint256).max for unlimited supply
     /// @param azimuthPoint The tokenID / @ud of the associated Urbit ID
@@ -54,13 +53,17 @@ interface ISyndicateDeployerV1 {
     /// @param symbol The token symbol per ERC20 standard
     /// @return syndicateToken The token contract address just deployed
     function deploySyndicate(
-        address tokenOwner,
         uint256 initialSupply,
         uint256 maxSupply,
         uint256 azimuthPoint,
         string memory name,
         string memory symbol
     ) external returns (address syndicateToken);
+
+    function registerTokenOwnerChange(
+        address syndicateToken,
+        address newOwner
+    ) external returns (bool success);
 
     /// @notice Called to change protocol fee
     /// @dev function should be restricted to onlyOwner
@@ -92,6 +95,12 @@ interface ISyndicateDeployerV1 {
     /// @param user The address of a potential token launcher, generally the function caller
     /// @return bool The eligibility of the user to launch a token
     function checkEligibility(address user) external view returns (bool);
+
+    function validateTokenOwnerChange(
+        address proposedTokenOwner,
+        uint256 azimuthPoint,
+        address tbaImplementation
+    ) external view returns (bool isValid);
 
     function getRegistry() external view returns (address syndicateRegistry);
 
