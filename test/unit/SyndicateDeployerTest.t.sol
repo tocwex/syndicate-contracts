@@ -64,4 +64,8 @@ contract SyndicateDeployerTest is Test {
             "Previously pending owner should be owner"
         );
     }
+
+    // TODO add test for rejectOwnership()
+    // TODO add test for nullifyProposal()
+    // TODO add test for checkElligibility()
 }

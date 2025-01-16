@@ -8,6 +8,18 @@ A `Makefile` is provided for more concise running of commands, but it's usefulne
 
 For development purposes, we will be using `pragma solidity ^0.8.19`, but prior to release will lock down the solidity version, likely to 0.8.25
 
+## TODOS
+
+- [ ] Add eligibility check on uint256 azimuthPoint claiming and association with ownership addresses and SyndicateTokenV1 contract launching
+- [ ] Deployment Contract test cases
+- [ ] Test event emissions
+- [ ] Robust testing suite
+- [ ] Finish natspec documentation for interfaces
+- [ ] Finish natspec documentation for contract code
+- [ ] Decide on upgrade to v5.0.0 of OpenZepplin contracts or not
+- [ ] Further gas optimization
+- [ ] OPTIONAL: Look into Proxy and Upgradeable Proxy possibilities
+
 ## Foundry
 
 **Foundry is a blazing fast, portable and modular toolkit for Ethereum application development written in Rust.**

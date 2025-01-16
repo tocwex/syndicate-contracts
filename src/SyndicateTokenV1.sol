@@ -3,17 +3,6 @@
 pragma solidity ^0.8.19;
 
 // TODO update openzepplin contracts to ^5.0.0 ?
-// TODO
-// For the initial version of the token launch feature in %slab, we will use a basic ERC20 factory contract that enables a visitor to pass in constructor values to set:
-//
-// Total supply
-// Initial supply
-// Initial mint amount and target address
-// Ownership address
-// Token name
-// Token symbol
-//
-// TODO change state variables to private and implement getter functions
 
 import {ERC20} from "@openzepplin/token/ERC20/ERC20.sol";
 import {ISyndicateDeployerV1} from "../src/interfaces/ISyndicateDeployerV1.sol";
@@ -29,9 +18,10 @@ contract SyndicateTokenV1 is ERC20 {
     //// Constants
 
     //// Immutables
-    ISyndicateDeployerV1 public immutable i_syndicateDeployer; // Make static deployer address?
+    ISyndicateDeployerV1 public immutable i_syndicateDeployer;
     uint256 private immutable i_maxSupply;
     uint256 private immutable i_azimuthPoint;
+
     //// Regular State Variables
     address private _owner;
 
@@ -69,19 +59,20 @@ contract SyndicateTokenV1 is ERC20 {
     // Functions
     //// receive
     receive() external payable {
-        revert("Direct ETH transfers not accepted"); // TK we could make this a donation to the registry owner?
+        revert("Direct ETH transfers not accepted"); // TODO we could make this a donation to the registry owner?
     }
 
     //// fallback
     fallback() external payable {
-        revert("Function does not exist"); // TK we could make this a donation to the registry owner as well?
+        revert("Function does not exist"); // TODO we could make this a donation to the registry owner as well?
     }
 
     //// external
-
     function mint(address account, uint256 amount) external onlyOwner {
         return _mint(account, amount);
     }
+
+    // TODO add batch minting function callable by owner
 
     function updateOwnershipTba(
         address newOwner,
@@ -106,8 +97,6 @@ contract SyndicateTokenV1 is ERC20 {
         return _owner;
     }
 
-    //// public
-
     //// internal
     function _mint(address account, uint256 amount) internal override {
         require(
@@ -121,7 +110,6 @@ contract SyndicateTokenV1 is ERC20 {
         address newOwner,
         address tbaImplementation
     ) internal returns (bool success) {
-        // Checks
         bool isValid = i_syndicateDeployer.validateTokenOwnerChange(
             newOwner,
             i_azimuthPoint,
@@ -132,11 +120,9 @@ contract SyndicateTokenV1 is ERC20 {
             "New Owner must be a valid TBA associated with Urbit ID"
         );
 
-        // internal changes
         _owner = newOwner;
         success = true;
 
-        // external calls
         bool registeryUpdated = i_syndicateDeployer.registerTokenOwnerChange(
             address(this),
             newOwner
@@ -144,6 +130,4 @@ contract SyndicateTokenV1 is ERC20 {
         require(registeryUpdated, "Registry must have updated to proceed");
         return success;
     }
-    //// private
-    //// view / pure
 }
