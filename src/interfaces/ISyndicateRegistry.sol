@@ -4,13 +4,15 @@
 pragma solidity ^0.8.19;
 
 interface ISyndicateRegistry {
-    // Structs and types
+    // Structs
+    // TODO add natspec
     struct SyndicateDeployerData {
         address deployerAddress; // 20 bytes
         uint64 deployerVersion; // 8 bytes
         bool isActive; // 1 byte
     }
 
+    // TODO add natspec
     struct Syndicate {
         address syndicateOwner; // 20 bytes
         address syndicateContract; // 20 bytes
@@ -63,6 +65,7 @@ interface ISyndicateRegistry {
         address indexed owner
     );
 
+    // TODO add natspec
     event SyndicateOwnerUpdated(
         address indexed deployerAddress,
         address indexed syndicateToken,
@@ -154,10 +157,10 @@ interface ISyndicateRegistry {
 
     /// @notice called calldata by Syndicate Registry owner to propose new ownership keys
     /// @dev should only be callable by current contract owner
-    /// @param pendingOwner The address of the proposed new owner
+    /// @param proposedOwner The address of the proposed new owner
     function proposeNewOwner(
         address proposedOwner
-    ) external returns (address pendingOwner, address owner);
+    ) external returns (bool success);
 
     /// @notice Called by pendingOwner to accept ownership of Syndicate Registry contract
     /// @dev should only be callable by pendingOwner

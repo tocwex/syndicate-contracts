@@ -18,8 +18,10 @@ contract SyndicateRegistry is ISyndicateRegistry {
     mapping(uint256 => Syndicate) private _syndicate; // azimuthPoint => syndicate token contract struct
     mapping(address => uint256) private _addressToAzimuthPoint; // syndicate token address to azimuth point
     mapping(address => bool) private _isRegisteredDeployer; // check if address is a registered deployer
+    // mapping(uint256 => bool) private _hasLaunchedSyndicate; // check if @ud has launched a syndicate token
 
     // Modifiers
+    // TODO maybe add an 'onlyActiveDeployer' check?
     modifier onlyOwner() {
         require(msg.sender == _owner, "Unauthorized");
         _;
@@ -36,19 +38,18 @@ contract SyndicateRegistry is ISyndicateRegistry {
     }
 
     // Constructor
-
     constructor() {
         // constructor sets initial owner
         _owner = msg.sender;
     }
 
     // Functions
-    //// receive
+    //// Receive
     receive() external payable {
         revert("Direct ETH transfers not accepted"); // TK we could make this a donation to the registry owner?
     }
 
-    //// fallback
+    //// Fallback
     fallback() external payable {
         revert("Function does not exist"); // TK we could make this a donation to the registry owner as well?
     }
@@ -58,7 +59,6 @@ contract SyndicateRegistry is ISyndicateRegistry {
         SyndicateDeployerData calldata syndicateDeployerData
     ) external onlyOwner returns (bool success) {
         return _registerDeployer(syndicateDeployerData);
-        // Do we want to limit to one deployer per version? I suspect 'yes'
     }
 
     function deactivateDeployer(
@@ -89,7 +89,7 @@ contract SyndicateRegistry is ISyndicateRegistry {
 
     function proposeNewOwner(
         address proposedOwner
-    ) external onlyOwner returns (address pendingOwner, address owner) {
+    ) external onlyOwner returns (bool success) {
         return _proposeNewOwner(proposedOwner);
     }
 
@@ -162,6 +162,12 @@ contract SyndicateRegistry is ISyndicateRegistry {
             !_isRegisteredDeployer[syndicateDeployerData.deployerAddress],
             "Deployer is already registered"
         );
+        // TODO iterate over syndicate deployers to block registration of duplicate deployer versions; following code is scratch and should not be used
+        // require(
+        //     syndicateDeployerData.deployerVersion
+        //         != _syndicateDeployers[syndicateDeployerData.deployerAddress].deployerVersion,
+        //     "Deployer version already exists"
+        // );
         _syndicateDeployers.push(syndicateDeployerData.deployerAddress);
         _deployerData[
             syndicateDeployerData.deployerAddress
@@ -178,7 +184,6 @@ contract SyndicateRegistry is ISyndicateRegistry {
     }
 
     function _deactivateDeployer(
-        // TODO determine if all the calldata is necessary, or should just be an address
         SyndicateDeployerData calldata syndicateDeployerData
     ) internal returns (bool success) {
         address deployer = syndicateDeployerData.deployerAddress;
@@ -189,14 +194,14 @@ contract SyndicateRegistry is ISyndicateRegistry {
         );
         require(deployerData.isActive, "Deployer already inactive");
         deployerData.isActive = false;
+        success = true;
         emit DeployerDeactivated(deployer, false);
-        return true;
+        return success;
     }
 
     function _reactivateDeployer(
-        // TODO determine if all the calldata is necessary, or should just be an address
         SyndicateDeployerData calldata syndicateDeployerData
-    ) internal returns (bool succeess) {
+    ) internal returns (bool success) {
         address deployer = syndicateDeployerData.deployerAddress;
         SyndicateDeployerData storage deployerData = _deployerData[deployer];
         require(
@@ -205,8 +210,9 @@ contract SyndicateRegistry is ISyndicateRegistry {
         );
         require(!deployerData.isActive, "Deployer already active");
         deployerData.isActive = true;
+        success = true;
         emit DeployerReactivated(deployer, true);
-        return true;
+        return success;
     }
 
     function _registerSyndicate(
@@ -214,7 +220,11 @@ contract SyndicateRegistry is ISyndicateRegistry {
     ) internal returns (bool success) {
         _syndicate[syndicate.azimuthPoint] = syndicate;
         success = true;
-        // should emit SyndicateRegistered event
+        emit SyndicateRegistered({
+            deployerAddress: msg.sender, // TODO triple check only the correct deployer can call this function
+            syndicateToken: syndicate.syndicateContract,
+            owner: syndicate.syndicateOwner
+        });
     }
 
     function _updateSyndicateOwnerRegistration(
@@ -224,17 +234,23 @@ contract SyndicateRegistry is ISyndicateRegistry {
         uint256 syndicatePoint = _addressToAzimuthPoint[syndicateToken];
         _syndicate[syndicatePoint].syndicateOwner = newOwner;
         success = true;
-        // should emit SyndicateOwnerUpdated event
+        emit SyndicateOwnerUpdated({
+            deployerAddress: msg.sender,
+            syndicateToken: syndicateToken,
+            owner: newOwner
+        });
     }
 
     function _proposeNewOwner(
         address proposedOwner
-    ) internal returns (address pendingOwner, address owner) {
+    ) internal returns (bool success) {
         _pendingOwner = proposedOwner;
-        // TODO emit event
-        pendingOwner = proposedOwner;
-        owner = _owner;
-        emit OwnerProposed(pendingOwner, owner);
+        success = true;
+        emit OwnerProposed({
+            pendingOwner: proposedOwner,
+            registryOwner: msg.sender
+        });
+        return success;
     }
 
     function _acceptOwnership() internal returns (bool success) {

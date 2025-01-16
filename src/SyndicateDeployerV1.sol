@@ -2,27 +2,17 @@
 
 pragma solidity ^0.8.19;
 
-// TODO
-// Deployment factory contract to:
-// keep a list of @p to token address + token version number
-//// each @p gets only one token (can they overwrite? maybe they can chose on launch?)
-// contract proxy address
-// constructor values for: fee percentage, fee recipient (~tocwex TBA)
-// access control list by TBA address (How do I do TBA lookup onchain?)
-// upgradable contract proxy
-// ownable deployment factory, but no control over the ledger
-// TODO implement receive and fallback Functions
+// TODO review all event emissions to ensure calldata is used instead of memory or loading from storage
+
 import {SyndicateRegistry} from "./SyndicateRegistry.sol";
 import {ISyndicateRegistry} from "./interfaces/ISyndicateRegistry.sol";
 import {SyndicateTokenV1} from "./SyndicateTokenV1.sol";
 import {ISyndicateDeployerV1} from "./interfaces/ISyndicateDeployerV1.sol";
 
 contract SyndicateDeployerV1 is ISyndicateDeployerV1 {
-    // Structs: N/A
-
     // Variables
     // TODO Add natspec
-    ISyndicateRegistry private immutable i_registry; // = "0x123..."; TODO hardcode the registry contract; does this work better as a constant?
+    ISyndicateRegistry private immutable i_registry;
     address private _owner;
     address private _pendingOwner;
     address private _feeRecipient;
@@ -30,7 +20,7 @@ contract SyndicateDeployerV1 is ISyndicateDeployerV1 {
 
     // Mappings
     mapping(address => bool) _deployedSyndicates;
-    // TODO create mappings
+
     // Modifiers
     // TODO create 'isElligible' modifier?
 
@@ -50,12 +40,17 @@ contract SyndicateDeployerV1 is ISyndicateDeployerV1 {
     }
 
     // Constructor
-
     constructor(address registryAddress, uint256 fee) {
         i_registry = ISyndicateRegistry(registryAddress);
         _owner = msg.sender;
         _feeRecipient = msg.sender;
         _fee = fee;
+        emit DeployerV1Deployed(
+            address(i_registry),
+            _fee,
+            _owner,
+            _feeRecipient
+        );
     }
 
     // Functions
@@ -69,10 +64,11 @@ contract SyndicateDeployerV1 is ISyndicateDeployerV1 {
         revert("Function does not exist"); // TK we could make this a donation to the registry owner as well?
     }
 
-    //// External functions
+    //// External
 
     // @inheritdoc ISyndicateDeployerV1
-    //// TODO needs some sort of eligibility check
+    //// TODO needs some sort of eligibility check for the azimuthPoint value against its relationship to msg.sender
+    //// That check probably makes sense to occur here, or as a modifier?
     function deploySyndicate(
         uint256 initialSupply,
         uint256 maxSupply,
@@ -95,7 +91,6 @@ contract SyndicateDeployerV1 is ISyndicateDeployerV1 {
         address syndicateToken,
         address newOwner
     ) external validSyndicate returns (bool success) {
-        // TODO Access controls for registering a token owner change
         return _registerTokenOwnerChange(syndicateToken, newOwner);
     }
 
@@ -113,7 +108,7 @@ contract SyndicateDeployerV1 is ISyndicateDeployerV1 {
 
     function proposeNewOwner(
         address proposedOwner
-    ) external onlyOwner returns (address pendingOwner, address owner) {
+    ) external onlyOwner returns (bool success) {
         return _proposeNewOwner(proposedOwner);
     }
 
@@ -142,14 +137,15 @@ contract SyndicateDeployerV1 is ISyndicateDeployerV1 {
     }
 
     /// @inheritdoc ISyndicateDeployerV1
-    function checkEligibility(
-        address user
+    function isValidSyndicate(
+        address user,
+        uint256 azimuthPoint
     ) external view returns (bool success) {
         // TODO Eligibility checks should vet: galaxy vs star vs galaxy planet vs planet vs L2
         // I'll probably need to include a local ERC6551 environment for this so until then
         // it likely just makes sense to check with the register if the proposed address already
         // exists in the registry
-        return _checkEligibility(user);
+        return _checkEligibility(user, azimuthPoint);
     }
 
     function validateTokenOwnerChange(
@@ -232,6 +228,7 @@ contract SyndicateDeployerV1 is ISyndicateDeployerV1 {
             syndicateToken,
             newOwner
         );
+        emit TokenOwnerChanged(syndicateToken, newOwner);
     }
 
     function _changeFee(uint256 fee) internal {
@@ -242,59 +239,64 @@ contract SyndicateDeployerV1 is ISyndicateDeployerV1 {
     function _changeFeeRecipient(
         address newFeeRecipient
     ) internal returns (bool success) {
-        // change fee recipient logic
-        revert("Not yet implemented");
+        _feeRecipient = newFeeRecipient;
+        emit FeeRecipientUpdated({feeRecipient: newFeeRecipient});
+        success = true;
+        return success;
     }
 
     function _proposeNewOwner(
         address proposedOwner
-    ) internal returns (address pendingOwner, address owner) {
+    ) internal returns (bool success) {
         _pendingOwner = proposedOwner;
-        // TODO emit event
-        pendingOwner = proposedOwner;
-        owner = _owner;
+        success = true;
+        emit OwnerProposed({proposedOwner: proposedOwner});
+        return success;
     }
 
     function _acceptOwnership() internal returns (bool success) {
-        address previousOwner = _owner;
-        address newOwner = _pendingOwner;
-        _owner = _pendingOwner;
+        _owner = msg.sender;
         _pendingOwner = address(0);
         success = true;
-        // TODO should make a call to registry contract to update Syndicate mapping with the new owner
-        // TODO emit event with previousOwner and newOwner
+        emit ProposalAccepted({newOwner: msg.sender});
         return success;
     }
 
     function _rejectOwnership() internal returns (bool success) {
-        address retainedOwner = _owner;
-        address proposedOwner = _pendingOwner;
         _pendingOwner = address(0);
         success = true;
-        // TODO emit event with retainedOwner and proposedOwner
+        emit ProposalRejected({
+            proposedOwner: msg.sender,
+            deployerOwner: _owner
+        });
         return success;
     }
 
     function _nullifyProposal() internal returns (bool success) {
-        address retainedOwner = _owner;
         address proposedOwner = _pendingOwner;
         _pendingOwner = address(0);
         success = true;
-        // TODO emit event with retainedOwner and proposedOwner
+        emit ProposalNullified({
+            proposedOwner: proposedOwner,
+            deployerOwner: msg.sender
+        });
         return success;
     }
 
     function _renounceOwnership() internal returns (bool success) {
         _owner = address(0);
-        // TODO emit event renouncing ownership
+        emit OwnershipRenounced({previousOwner: msg.sender});
         success = true;
     }
 
     function _checkEligibility(
-        address user
+        address user,
+        uint256 azimuthPoint
     ) internal view returns (bool success) {
         address _user;
-        user = _user;
+        uint256 _azimuthPoint;
+        _user = user;
+        _azimuthPoint = azimuthPoint;
         return true;
         // TODO actually implement eligibility checks via TBA value
     }
