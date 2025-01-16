@@ -74,6 +74,30 @@ contract SyndicateRegistryTest is Test {
         console2.log("symbol: ", launchedSyndicate.symbol());
     }
 
+    // Admin checks
+    function testContractSizes() public {
+        uint256 registrySize;
+        uint256 deployerSize;
+        uint256 tokenSize;
+
+        _registryAndDeployer();
+        _launchSyndicateToken();
+
+        address registryAddr = address(registry);
+        address deployerAddr = address(deployerV1);
+        address tokenAddr = address(launchedSyndicate);
+
+        assembly {
+            registrySize := extcodesize(registryAddr)
+            deployerSize := extcodesize(deployerAddr)
+            tokenSize := extcodesize(tokenAddr)
+        }
+
+        console2.log("Registry contract size:", registrySize);
+        console2.log("Deployer contract size:", deployerSize);
+        console2.log("Token contract size:", tokenSize);
+    }
+
     // Ownership Transfer Tests
 
     function test_InitialRegistryOwner() public view {
@@ -363,6 +387,10 @@ contract SyndicateRegistryTest is Test {
         );
     }
 
+    // TODO add test for failing to register a deployer with a version number matching that of an already existant deployer
+    // TODO add test_ChangeSyndicateDeployerFeeRecipient
+
+    // Syndicate Launching Tests
     function test_LaunchAndRegisterNewSyndicate() public {
         _registryAndDeployer();
         _launchSyndicateToken();
@@ -395,4 +423,8 @@ contract SyndicateRegistryTest is Test {
             "Syndicate Token Owner failed to update properly"
         );
     }
+
+    // TODO testFail_UpdateSyndicateOwnershipAddressAsNotOwner
+
+    // Syndicate Management
 }
