@@ -287,6 +287,7 @@ contract SyndicateDeployerV1 is ISyndicateDeployerV1 {
         _owner = address(0);
         emit OwnershipRenounced({previousOwner: msg.sender});
         success = true;
+        return success;
     }
 
     function _checkEligibility(

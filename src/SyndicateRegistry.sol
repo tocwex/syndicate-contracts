@@ -239,6 +239,7 @@ contract SyndicateRegistry is ISyndicateRegistry {
             syndicateToken: syndicateToken,
             owner: newOwner
         });
+        return success;
     }
 
     function _proposeNewOwner(
