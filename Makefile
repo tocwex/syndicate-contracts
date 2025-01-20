@@ -1,10 +1,25 @@
 -include .env
 
-.PHONY: all test clean deploy fund help install snapshot format anvil install deploy deploy-sepolia verify
+.PHONY: all test clean deploy fund help install snapshot format anvil install \
+        deploy-anvil-pk deploy-sepolia deploy-sepolia-ledger deploy-sepolia-wallet \
+        check-env check-deployment verify
 
-DEFAULT_ANVIL_KEY := $(PRIVATE_KEY_0) 
+NETWORK_ARGS_ANVIL := --rpc-url 127.0.0.1:8545
+NETWORK_ARGS_SEPOLIA := --rpc-url $(SEPOLIA_RPC_URL)
 
-ACCOUNT := $(SEPOLIA_PUBLIC_KEY_0)
+VERIFY_ARGS := --verify --etherscan-api-key $(ETHERSCAN_API_KEY)
+
+BASIC_ARGS := --broadcast -vvvv
+
+check-env-anvil:
+	@echo "Checking anvil environment variables..."
+	@test -n "$(ANVIL_PRIVATE_KEY_0)" || (echo "ANVIL_PRIVATE_KEY_0 is required" && exit 1)
+
+
+check-env-sepolia:
+	@echo "Checking Sepolia environment variables..."
+	@test -n "$(SEPOLIA_RPC_URL)" || (echo "SEPOLIA_RPC_URL is required" && exit 1)
+	@test -n "$(ETHERSCAN_API_KEY)" || (echo "ETHERSCAN_API_KEY is required" && exit 1)
 
 all: clean remove install update build
 
@@ -31,13 +46,23 @@ format :; forge fmt
 
 anvil :; anvil -m 'test test test test test test test test test test test junk' --steps-tracing --block-time 1
 
-deploy:
-	@forge script script/DeploySyndicate.s.sol:DeploySyndicate --rpc-url http://127.0.0.1:8545 --private-key $(PRIVATE_KEY_0) --broadcast -vvvv
+deploy-anvil-pk: check-env-anvil
+	@echo "Deploying to Anvil Devnet..."
+	@echo "Using private keys..."
+	@SIGNER_TYPE=private-key forge script script/DeploySyndicate.s.sol:DeploySyndicate $(NETWORK_ARGS_ANVIL) --private-key $(ANVIL_PRIVATE_KEY_0) $(BASIC_ARGS)
 
 
-deploy-sepolia:
-	@forge script script/DeployOurToken.s.sol:DeployOurToken --rpc-url $(SEPOLIA_RPC_URL) --account $(ACCOUNT) --sender $(SENDER) --etherscan-api-key $(ETHERSCAN_API_KEY) --broadcast --verify
+deploy-sepolia-pk: check-env-sepolia
+	@echo "Deploying to Sepolia Testnet..."
+	@echo "Using private keys..."
+	@SIGNER_TYPE=private-key forge script script/DeploySyndicate.s.sol:DeploySyndicate $(NETWORK_ARGS_SEPOLIA) --private-key $(SEPOLIA_PRIVATE_KEY_0) $(VERIFY_ARGS) $(BASIC_ARGS)
 
 
-# verify:
-	# @forge verify-contract --chain-id 11155111 --num-of-optimizations 200 --watch --constructor-args 0x00000000000000000000000000000000000000000000d3c21bcecceda1000000 --etherscan-api-key $(ETHERSCAN_API_KEY) --compiler-version v0.8.19+commit.7dd6d404 0x089dc24123e0a27d44282a1ccc2fd815989e3300 src/OurToken.sol:OurToken
+deploy-sepolia-ledger: check-env-sepolia
+	@echo "Deploying to Anvil Devnet..."
+	@echo "Using ledger address $LEDGER_ADDRESS..."
+	@echo "Please sign on ledger hardware wallet..."
+	@SIGNER_TYPE=ledger forge script script/DeploySyndicate.s.sol:DeploySyndicate $(NETWORK_ARGS_SEPOLIA) --ledger --sender $(LEDGER_ADDRESS) $(VERIFY_ARGS) $(BASIC_ARGS)
+
+
+# TODO Add addtional deployment types for contract wallet deployments
