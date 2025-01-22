@@ -18,6 +18,8 @@ contract SyndicateRegistry is ISyndicateRegistry {
     mapping(uint256 => Syndicate) private _syndicate; // azimuthPoint => syndicate token contract struct
     mapping(address => uint256) private _addressToAzimuthPoint; // syndicate token address to azimuth point
     mapping(address => bool) private _isRegisteredDeployer; // check if address is a registered deployer
+    // TODO implement check of if a syndicate has been launched from a given @ud
+    // this check should be readily accessible by other contracts
     // mapping(uint256 => bool) private _hasLaunchedSyndicate; // check if @ud has launched a syndicate token
 
     // Modifiers
@@ -148,6 +150,17 @@ contract SyndicateRegistry is ISyndicateRegistry {
     {
         return _deployerData[deployerAddress];
     }
+
+    // TODO Implement getter functions for mappings
+    // azimuthPoint => syndicate struct => token address
+    // azimuth point => syndicate struct => token address => deployer address
+    // azimuth point => syndicate struct => token address => deployer address => deployer version
+    // azimuth point => syndicate struct => token address => deployer address => deployer active?
+    // azimuth point => syndicate struct => token address => token owner address
+    // azimuth point => syndicate struct => token address => launch time
+    // token owner => token address? Can a token owner address really only map to one token address?
+    // token address => syndicate data?
+    //
 
     // Internal Functions
 
