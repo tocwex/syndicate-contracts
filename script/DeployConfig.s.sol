@@ -17,10 +17,13 @@ contract DeployConfig is Script {
     }
 
     struct NetworkConfig {
+        address azimuthContract;
         address existingRegistryAddress;
         address existingDeployerAddress;
         address deploymentAddress;
         address contractWalletAddress;
+        address implementationAddress;
+        bytes32 salt;
         SignerType signerType;
         uint256 azimuthPoint;
         string tokenName;
@@ -86,12 +89,19 @@ contract DeployConfig is Script {
 
         if (block.chainid == 31337) {
             uint256 azimuthPoint = vm.envUint("ANVIL_AZIMUTH_POINT");
+            address azimuthContract = vm.envAddress("ANVIL_AZIMUTH_CONTRACT");
+            address implementationAddress = vm.envAddress(
+                "ANVIL_TBA_IMPLEMENTATION"
+            );
             return
                 NetworkConfig({ // Local Anvil Devnet
+                    azimuthContract: azimuthContract,
                     existingRegistryAddress: address(0),
                     existingDeployerAddress: address(0),
                     deploymentAddress: deploymentAddress,
                     contractWalletAddress: contractWalletAddress,
+                    implementationAddress: implementationAddress,
+                    salt: bytes32(0),
                     signerType: signerType,
                     azimuthPoint: azimuthPoint,
                     tokenName: "DevNet Syndicate",
@@ -103,12 +113,19 @@ contract DeployConfig is Script {
         } else if (block.chainid == 11155111) {
             // Sepolia Testnet
             uint256 azimuthPoint = vm.envUint("SEPOLIA_AZIMUTH_POINT");
+            address azimuthContract = vm.envAddress("SEPOLIA_AZIMUTH_CONTRACT");
+            address implementationAddress = vm.envAddress(
+                "SEPOLIA_TBA_IMPLEMENTATION"
+            );
             return
                 NetworkConfig({
+                    azimuthContract: azimuthContract,
                     existingRegistryAddress: address(0),
                     existingDeployerAddress: address(0),
                     deploymentAddress: deploymentAddress,
                     contractWalletAddress: contractWalletAddress,
+                    implementationAddress: implementationAddress,
+                    salt: bytes32(0),
                     signerType: signerType,
                     azimuthPoint: azimuthPoint,
                     tokenName: "Sepolia Syndicate",
@@ -120,12 +137,19 @@ contract DeployConfig is Script {
         } else if (block.chainid == 1) {
             // Ethereum Mainnet
             uint256 azimuthPoint = vm.envUint("MAINNET_AZIMUTH_POINT");
+            address azimuthContract = vm.envAddress("MAINNET_AZIMUTH_CONTRACT");
+            address implementationAddress = vm.envAddress(
+                "MAINNET_TBA_IMPLEMENTATION"
+            );
             return
                 NetworkConfig({
+                    azimuthContract: azimuthContract,
                     existingRegistryAddress: address(0),
                     existingDeployerAddress: address(0),
                     deploymentAddress: deploymentAddress,
                     contractWalletAddress: contractWalletAddress,
+                    implementationAddress: implementationAddress,
+                    salt: bytes32(0),
                     signerType: signerType,
                     azimuthPoint: azimuthPoint,
                     tokenName: "Tocwex Syndicate",

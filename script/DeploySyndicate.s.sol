@@ -98,6 +98,7 @@ contract DeploySyndicate is Script {
         if (config.existingDeployerAddress == address(0)) {
             deployerV1 = new SyndicateDeployerV1(
                 registryAddress,
+                config.azimuthContract,
                 config.deployerFee
             );
             registry.registerDeployer(
@@ -132,6 +133,8 @@ contract DeploySyndicate is Script {
         syndicateToken = SyndicateTokenV1(
             payable(
                 deployerV1.deploySyndicate(
+                    config.implementationAddress,
+                    config.salt,
                     config.initialSupply,
                     config.maxSupply,
                     config.azimuthPoint,
