@@ -4,7 +4,8 @@ out = "out"
 libs = ["lib"]
 remappings = [
     "@openzepplin/=lib/openzepplin-contracts/contracts",
-    "@forge-std/=lib/forge-std/src/"
+    "@forge-std/=lib/forge-std/src/",
+    "erc6551/=lib/tokenbound/lib/erc6551/src/"
 ]
 ignored_error_codes = [2072, 2018, 5667]
 
