@@ -76,9 +76,10 @@ contract SyndicateTokenV1 is ERC20 {
 
     function updateOwnershipTba(
         address newOwner,
-        address tbaImplementation
+        address tbaImplementation,
+        bytes32 salt
     ) external onlyOwner returns (bool success) {
-        return _updateOwnershipTba(newOwner, tbaImplementation);
+        return _updateOwnershipTba(newOwner, tbaImplementation, salt);
     }
 
     function getDeployerAddress() external view returns (address) {
@@ -108,24 +109,30 @@ contract SyndicateTokenV1 is ERC20 {
 
     function _updateOwnershipTba(
         address newOwner,
-        address tbaImplementation
+        address implementation,
+        bytes32 salt
     ) internal returns (bool success) {
-        bool isValid = i_syndicateDeployer.validateTokenOwnerChange(
-            newOwner,
-            i_azimuthPoint,
-            tbaImplementation
-        );
-        require(
-            isValid,
-            "New Owner must be a valid TBA associated with Urbit ID"
-        );
-
+        // bool isValid = i_syndicateDeployer.validateTokenOwnerChange(
+        //     newOwner,
+        //     i_azimuthPoint,
+        //     implementation,
+        //     salt
+        // );
+        // require(
+        //     isValid,
+        //     "New Owner must be a valid TBA associated with Urbit ID"
+        // );
+        //
         _owner = newOwner;
         success = true;
 
+        // TODO Update the ISyndicateDeployerV1 interface
+
         bool registeryUpdated = i_syndicateDeployer.registerTokenOwnerChange(
-            address(this),
-            newOwner
+            newOwner,
+            i_azimuthPoint,
+            implementation,
+            salt
         );
         require(registeryUpdated, "Registry must have updated to proceed");
         return success;

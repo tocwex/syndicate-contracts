@@ -2,19 +2,26 @@
 
 pragma solidity ^0.8.19;
 
-// TODO review all event emissions to ensure calldata is used instead of memory or loading from storage
+// TODO natspec for internal functions
 
 import {SyndicateRegistry} from "./SyndicateRegistry.sol";
 import {ISyndicateRegistry} from "./interfaces/ISyndicateRegistry.sol";
 import {SyndicateTokenV1} from "./SyndicateTokenV1.sol";
 import {ISyndicateDeployerV1} from "./interfaces/ISyndicateDeployerV1.sol";
+import {IERC6551Registry} from "../lib/tokenbound/lib/erc6551/src/interfaces/IERC6551Registry.sol";
+import {IERC721} from "../lib/openzepplin-contracts/contracts/token/ERC721/IERC721.sol";
 
 contract SyndicateDeployerV1 is ISyndicateDeployerV1 {
     // Variables
-    // TODO Add natspec
+    //// Constants
+    IERC6551Registry private constant TBA_REGISTRY =
+        IERC6551Registry(0x000000006551c19487814612e58FE06813775758);
+
+    //// Immutables
     ISyndicateRegistry private immutable i_registry;
-    address private _owner;
-    address private _pendingOwner;
+    IERC721 private immutable i_azimuthContract;
+
+    //// Mutables
     address private _feeRecipient;
     uint256 private _fee;
 
@@ -22,35 +29,76 @@ contract SyndicateDeployerV1 is ISyndicateDeployerV1 {
     mapping(address => bool) _deployedSyndicates;
 
     // Modifiers
-    // TODO create 'isElligible' modifier?
 
     modifier onlyOwner() {
-        require(msg.sender == _owner, "Unauthorized");
+        address _owner = i_registry.getOwner();
+        require(msg.sender == _owner, "Unauthorized: Not owner");
         _;
     }
 
-    modifier onlyPendingOwner() {
-        require(msg.sender == _pendingOwner, "Unauthorized");
+    modifier onlyActive() {
+        ISyndicateRegistry.SyndicateDeployerData
+            memory syndicateDeployerData = i_registry.getDeployerData(
+                address(this)
+            );
+        require(
+            syndicateDeployerData.isActive,
+            "Inactive Deployer cannot launch Syndicate Token"
+        );
         _;
     }
 
-    modifier validSyndicate() {
-        require(_deployedSyndicates[msg.sender], "Unauthorized");
+    modifier onlyUnlaunched(uint256 azimuthPoint) {
+        require(
+            azimuthPoint < 65535,
+            "Only Stars and Galaxies can launch Syndicates from this deployer"
+        );
+        bool isLaunched = i_registry.getSyndicateTokenExistsUsingAzimuthPoint(
+            azimuthPoint
+        );
+        require(!isLaunched, "This syndicate already exists");
         _;
     }
 
-    // Constructor
-    constructor(address registryAddress, uint256 fee) {
+    modifier onlySyndicate() {
+        bool isSyndicate = _deployedSyndicates[msg.sender];
+        _;
+    }
+
+    modifier onlyValidTba(
+        address proposedTbaAddress,
+        uint256 azimuthPoint,
+        address implementation,
+        bytes32 salt
+    ) {
+        require(
+            azimuthPoint < 65535,
+            "Only Stars and Galaxies can launch Syndicates from this deployer"
+        );
+        address derivedTba = TBA_REGISTRY.account(
+            implementation,
+            salt,
+            block.chainid,
+            address(i_azimuthContract),
+            azimuthPoint
+        );
+        require(
+            proposedTbaAddress == derivedTba,
+            "Proposed token owner not a valid TBA associated with Uribt ID"
+        );
+        _;
+    }
+
+    constructor(address registryAddress, address azimuthContract, uint256 fee) {
         i_registry = ISyndicateRegistry(registryAddress);
-        _owner = msg.sender;
+        i_azimuthContract = IERC721(azimuthContract);
         _feeRecipient = msg.sender;
         _fee = fee;
-        emit DeployerV1Deployed(
-            address(i_registry),
-            _fee,
-            _owner,
-            _feeRecipient
-        );
+        emit DeployerV1Deployed({
+            registryAddress: registryAddress,
+            fee: fee,
+            feeRecipient: msg.sender
+        });
     }
 
     // Functions
@@ -67,15 +115,21 @@ contract SyndicateDeployerV1 is ISyndicateDeployerV1 {
     //// External
 
     // @inheritdoc ISyndicateDeployerV1
-    //// TODO needs some sort of eligibility check for the azimuthPoint value against its relationship to msg.sender
-    //// That check probably makes sense to occur here, or as a modifier?
     function deploySyndicate(
+        address implementation,
+        bytes32 salt,
         uint256 initialSupply,
         uint256 maxSupply,
         uint256 azimuthPoint,
         string memory name,
         string memory symbol
-    ) external returns (address syndicateToken) {
+    )
+        external
+        onlyActive
+        onlyUnlaunched(azimuthPoint)
+        onlyValidTba(msg.sender, azimuthPoint, implementation, salt)
+        returns (address syndicateToken)
+    {
         return
             _deploySyndicate(
                 msg.sender,
@@ -87,11 +141,19 @@ contract SyndicateDeployerV1 is ISyndicateDeployerV1 {
             );
     }
 
+    // @inheritdoc ISyndicateDeployerV1
     function registerTokenOwnerChange(
-        address syndicateToken,
-        address newOwner
-    ) external validSyndicate returns (bool success) {
-        return _registerTokenOwnerChange(syndicateToken, newOwner);
+        address newOwner,
+        uint256 azimuthPoint,
+        address implementation,
+        bytes32 salt
+    )
+        external
+        onlySyndicate
+        onlyValidTba(newOwner, azimuthPoint, implementation, salt)
+        returns (bool success)
+    {
+        return _registerTokenOwnerChange(msg.sender, newOwner);
     }
 
     /// @inheritdoc ISyndicateDeployerV1
@@ -106,82 +168,33 @@ contract SyndicateDeployerV1 is ISyndicateDeployerV1 {
         return _changeFeeRecipient(newFeeRecipient);
     }
 
-    function proposeNewOwner(
-        address proposedOwner
-    ) external onlyOwner returns (bool success) {
-        return _proposeNewOwner(proposedOwner);
-    }
-
-    function acceptOwnership()
-        external
-        onlyPendingOwner
-        returns (bool success)
-    {
-        return _acceptOwnership();
-    }
-
-    function rejectOwnership()
-        external
-        onlyPendingOwner
-        returns (bool success)
-    {
-        return _rejectOwnership();
-    }
-
-    function nullifyProposal() external onlyOwner returns (bool success) {
-        return _nullifyProposal();
-    }
-
-    function renounceOwnership() external onlyOwner returns (bool success) {
-        return _renounceOwnership();
-    }
-
-    /// @inheritdoc ISyndicateDeployerV1
-    function isValidSyndicate(
-        address user,
-        uint256 azimuthPoint
-    ) external view returns (bool success) {
-        // TODO Eligibility checks should vet: galaxy vs star vs galaxy planet vs planet vs L2
-        // I'll probably need to include a local ERC6551 environment for this so until then
-        // it likely just makes sense to check with the register if the proposed address already
-        // exists in the registry
-        return _checkEligibility(user, azimuthPoint);
-    }
-
-    function validateTokenOwnerChange(
-        address proposedTokenOwner,
-        uint256 azimuthPoint,
-        address tbaImplementation
-    ) external view returns (bool isValid) {
-        return
-            _validateTokenOwnerChange(
-                proposedTokenOwner,
-                azimuthPoint,
-                tbaImplementation
-            );
-    }
-
+    // @inheritdoc ISyndicateDeployerV1
     function getRegistry() external view returns (address syndicateRegistry) {
         return address(i_registry);
     }
 
+    // @inheritdoc ISyndicateDeployerV1
     function getOwner() external view returns (address deployerOwner) {
-        return _owner;
+        return i_registry.getOwner();
     }
 
-    function getPendingOwner() external view returns (address proposedOwner) {
-        return _pendingOwner;
+    // @inheritdoc ISyndicateDeployerV1
+    function getPendingOwner() external view returns (address pendingOwner) {
+        return i_registry.getPendingOwner();
     }
 
+    // @inheritdoc ISyndicateDeployerV1
     function getFeeRecipient() external view returns (address feeRecient) {
         return _feeRecipient;
     }
 
+    // @inheritdoc ISyndicateDeployerV1
     function getFee() external view returns (uint256 fee) {
         return _fee;
     }
 
     //// Internal Functions
+    // TODO add natspec
     function _deploySyndicate(
         address tokenOwner,
         uint256 initialSupply,
@@ -190,36 +203,35 @@ contract SyndicateDeployerV1 is ISyndicateDeployerV1 {
         string memory name,
         string memory symbol
     ) internal returns (address tokenContract) {
-        // TODO some check on eligibility either here or as a modifier in the external function to confirm ownership relationship of azimuthPoint == tokenOwner == msg.sender
         SyndicateTokenV1 syndicateTokenV1 = new SyndicateTokenV1(
             address(this),
             tokenOwner,
             initialSupply,
             maxSupply,
-            azimuthPoint, // TODO determine how we get/validate azimuthPoint
+            azimuthPoint,
             name,
             symbol
         );
-        ISyndicateRegistry.SyndicateDeployerData
-            memory syndicateDeployerData = i_registry.getDeployerData(
-                address(this)
-            );
 
         ISyndicateRegistry.Syndicate memory syndicate = ISyndicateRegistry
             .Syndicate({
                 syndicateOwner: tokenOwner,
                 syndicateContract: address(syndicateTokenV1),
-                syndicateDeploymentData: syndicateDeployerData,
+                syndicateDeployer: address(this),
                 syndicateLaunchTime: block.number,
                 azimuthPoint: azimuthPoint
             });
 
         _deployedSyndicates[address(syndicateTokenV1)] = true;
         i_registry.registerSyndicate(syndicate);
-        emit TokenDeployed(address(syndicateTokenV1), tokenOwner);
+        emit TokenDeployed({
+            token: address(syndicateTokenV1),
+            owner: tokenOwner
+        });
         return address(syndicateTokenV1);
     }
 
+    // TODO add natspec
     function _registerTokenOwnerChange(
         address syndicateToken,
         address newOwner
@@ -228,104 +240,23 @@ contract SyndicateDeployerV1 is ISyndicateDeployerV1 {
             syndicateToken,
             newOwner
         );
-        emit TokenOwnerChanged(syndicateToken, newOwner);
+        emit TokenOwnerChanged({token: syndicateToken, newOwner: newOwner});
+        return success;
     }
 
+    // TODO add natspec
     function _changeFee(uint256 fee) internal {
         _fee = fee;
-        emit FeeUpdated(_fee);
+        emit FeeUpdated(fee);
     }
 
+    // TODO add natspec
     function _changeFeeRecipient(
         address newFeeRecipient
     ) internal returns (bool success) {
         _feeRecipient = newFeeRecipient;
+        success = true;
         emit FeeRecipientUpdated({feeRecipient: newFeeRecipient});
-        success = true;
         return success;
-    }
-
-    function _proposeNewOwner(
-        address proposedOwner
-    ) internal returns (bool success) {
-        _pendingOwner = proposedOwner;
-        success = true;
-        emit OwnerProposed({proposedOwner: proposedOwner});
-        return success;
-    }
-
-    function _acceptOwnership() internal returns (bool success) {
-        _owner = msg.sender;
-        _pendingOwner = address(0);
-        success = true;
-        emit ProposalAccepted({newOwner: msg.sender});
-        return success;
-    }
-
-    function _rejectOwnership() internal returns (bool success) {
-        _pendingOwner = address(0);
-        success = true;
-        emit ProposalRejected({
-            proposedOwner: msg.sender,
-            deployerOwner: _owner
-        });
-        return success;
-    }
-
-    function _nullifyProposal() internal returns (bool success) {
-        address proposedOwner = _pendingOwner;
-        _pendingOwner = address(0);
-        success = true;
-        emit ProposalNullified({
-            proposedOwner: proposedOwner,
-            deployerOwner: msg.sender
-        });
-        return success;
-    }
-
-    function _renounceOwnership() internal returns (bool success) {
-        _owner = address(0);
-        emit OwnershipRenounced({previousOwner: msg.sender});
-        success = true;
-        return success;
-    }
-
-    function _checkEligibility(
-        address user,
-        uint256 azimuthPoint
-    ) internal view returns (bool success) {
-        address _user;
-        uint256 _azimuthPoint;
-        _user = user;
-        _azimuthPoint = azimuthPoint;
-        return true;
-        // TODO actually implement eligibility checks via TBA value
-    }
-
-    function _validateTokenOwnerChange(
-        address proposedTokenOwner,
-        uint256 azimuthPoint,
-        address tbaImplementation
-    ) internal view returns (bool isValid) {
-        require(azimuthPoint < 65535, "Galaxys and Stars only, brokie");
-        require(
-            proposedTokenOwner == proposedTokenOwner,
-            "Proposed token owner not valid"
-        );
-        require(
-            tbaImplementation == tbaImplementation,
-            "Proposed tba implemention somehow not valid..?"
-        );
-        isValid = true;
-        // TODO figure out how to call out to ERC6551 registry
-        // pseudocode for actually trying to validate address is a tba
-        // tokenContract = azimuthContract address;
-        // tokenID = azimuthPoint;
-        // chainId = 1; // any considerations here for chainID?
-        //// I think we can call the current chain's ID, or select an id manually depending on what we want to do
-        // targetAddress = tbaRegistry.account(tbaImplementation, salt, chainId, tokenContract, tokenID);
-        //// any considerations for the salt here? presumably if we use the 'default' salt, V1 tokens will only be able to be controlled by the default address of any given implementation. This probably isn't the end of the world...
-        // require(targetAddress == proposedTokenOwner, "Not a valid TBA of your Urbit ID");
-        return isValid;
     }
 }

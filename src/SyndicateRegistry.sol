@@ -18,12 +18,8 @@ contract SyndicateRegistry is ISyndicateRegistry {
     mapping(uint256 => Syndicate) private _syndicate; // azimuthPoint => syndicate token contract struct
     mapping(address => uint256) private _addressToAzimuthPoint; // syndicate token address to azimuth point
     mapping(address => bool) private _isRegisteredDeployer; // check if address is a registered deployer
-    // TODO implement check of if a syndicate has been launched from a given @ud
-    // this check should be readily accessible by other contracts
-    // mapping(uint256 => bool) private _hasLaunchedSyndicate; // check if @ud has launched a syndicate token
 
     // Modifiers
-    // TODO maybe add an 'onlyActiveDeployer' check?
     modifier onlyOwner() {
         require(msg.sender == _owner, "Unauthorized");
         _;
@@ -79,7 +75,6 @@ contract SyndicateRegistry is ISyndicateRegistry {
         Syndicate calldata syndicate
     ) external onlyValidDeployer returns (bool success) {
         return _registerSyndicate(syndicate);
-        // where does the check happen to ensure there is a 1:1 mapping of @p to token?
     }
 
     function updateSyndicateOwnerRegistration(
@@ -151,36 +146,117 @@ contract SyndicateRegistry is ISyndicateRegistry {
         return _deployerData[deployerAddress];
     }
 
-    // TODO Implement getter functions for mappings
-    // azimuthPoint => syndicate struct => token address
-    // azimuth point => syndicate struct => token address => deployer address
-    // azimuth point => syndicate struct => token address => deployer address => deployer version
-    // azimuth point => syndicate struct => token address => deployer address => deployer active?
-    // azimuth point => syndicate struct => token address => token owner address
-    // azimuth point => syndicate struct => token address => launch time
-    // token owner => token address? Can a token owner address really only map to one token address?
-    // token address => syndicate data?
-    //
+    function getSyndicateTokenExistsUsingAzimuthPoint(
+        uint256 azimuthPoint
+    ) external view returns (bool syndicateExists) {
+        return _syndicate[azimuthPoint].syndicateContract != address(0);
+    }
+
+    function getSyndicateTokenAddressUsingAzimuthPoint(
+        uint256 azimuthPoint
+    ) external view returns (address syndicateAddress) {
+        syndicateAddress = _syndicate[azimuthPoint].syndicateContract;
+        return syndicateAddress;
+    }
+
+    function getSyndicateTokenOwnerAddressUsingAzimuthPoint(
+        uint256 azimuthPoint
+    ) external view returns (address syndicateOwner) {
+        syndicateOwner = _syndicate[azimuthPoint].syndicateOwner;
+        return syndicateOwner;
+    }
+
+    function getSyndicateTokenDeployerAddressUsingAzimuthPoint(
+        uint256 azimuthPoint
+    ) external view returns (address syndicateDeployerAddress) {
+        return _syndicate[azimuthPoint].syndicateDeployer;
+    }
+
+    function getSyndicateTokenDeployerVersionUsingAzimuthPoint(
+        uint256 azimuthPoint
+    ) external view returns (uint64 syndicateDeployerVersion) {
+        address deployer = _syndicate[azimuthPoint].syndicateDeployer;
+        return _deployerData[deployer].deployerVersion;
+    }
+
+    function getSyndicateTokenDeployerIsActiveUsingAzimuthPoint(
+        uint256 azimuthPoint
+    ) external view returns (bool syndicateDeployerIsActive) {
+        address deployer = _syndicate[azimuthPoint].syndicateDeployer;
+        return _deployerData[deployer].isActive;
+    }
+
+    function getSyndicateTokenLaunchTimeUsingAzimuthPoint(
+        uint256 azimuthPoint
+    ) external view returns (uint256 syndicateLaunchTime) {
+        return _syndicate[azimuthPoint].syndicateLaunchTime;
+    }
+
+    function getSyndicateTokenExistsUsingAddress(
+        address checkAddress
+    ) external view returns (bool syndicateExists) {
+        uint256 azimuthPoint = _addressToAzimuthPoint[checkAddress];
+        return _syndicate[azimuthPoint].syndicateContract != address(0);
+    }
+
+    function getSyndicateAzimuthPointUsingAddress(
+        address checkAddress
+    ) external view returns (address syndicateAddress) {
+        uint256 azimuthPoint = _addressToAzimuthPoint[checkAddress];
+        syndicateAddress = _syndicate[azimuthPoint].syndicateContract;
+        return syndicateAddress;
+    }
+
+    function getSyndicateTokenOwnerAddressUsingAddress(
+        address checkAddress
+    ) external view returns (address syndicateOwner) {
+        uint256 azimuthPoint = _addressToAzimuthPoint[checkAddress];
+        syndicateOwner = _syndicate[azimuthPoint].syndicateOwner;
+        return syndicateOwner;
+    }
+
+    function getSyndicateTokenDeployerAddressUsingAddress(
+        address checkAddress
+    ) external view returns (address syndicateDeployerAddress) {
+        uint256 azimuthPoint = _addressToAzimuthPoint[checkAddress];
+        return _syndicate[azimuthPoint].syndicateDeployer;
+    }
+
+    function getSyndicateTokenDeployerVersionUsingAddress(
+        address checkAddress
+    ) external view returns (uint64 syndicateDeployerVersion) {
+        uint256 azimuthPoint = _addressToAzimuthPoint[checkAddress];
+        address deployer = _syndicate[azimuthPoint].syndicateDeployer;
+        return _deployerData[deployer].deployerVersion;
+    }
+
+    function getSyndicateTokenDeployerIsActiveUsingAddress(
+        address checkAddress
+    ) external view returns (bool syndicateDeployerIsActive) {
+        uint256 azimuthPoint = _addressToAzimuthPoint[checkAddress];
+        address deployer = _syndicate[azimuthPoint].syndicateDeployer;
+        return _deployerData[deployer].isActive;
+    }
+
+    function getSyndicateTokenLaunchTimeUsingAddress(
+        address checkAddress
+    ) external view returns (uint256 syndicateLaunchTime) {
+        uint256 azimuthPoint = _addressToAzimuthPoint[checkAddress];
+        return _syndicate[azimuthPoint].syndicateLaunchTime;
+    }
 
     // Internal Functions
-
     function _registerDeployer(
         SyndicateDeployerData calldata syndicateDeployerData
     ) internal returns (bool success) {
         require(
             syndicateDeployerData.deployerAddress != address(0),
             "Deployer is not at the null address"
-        ); // make sure address is not address(0)
+        );
         require(
             !_isRegisteredDeployer[syndicateDeployerData.deployerAddress],
             "Deployer is already registered"
         );
-        // TODO iterate over syndicate deployers to block registration of duplicate deployer versions; following code is scratch and should not be used
-        // require(
-        //     syndicateDeployerData.deployerVersion
-        //         != _syndicateDeployers[syndicateDeployerData.deployerAddress].deployerVersion,
-        //     "Deployer version already exists"
-        // );
         _syndicateDeployers.push(syndicateDeployerData.deployerAddress);
         _deployerData[
             syndicateDeployerData.deployerAddress
