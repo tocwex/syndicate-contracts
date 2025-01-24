@@ -37,8 +37,8 @@ update:; forge update
 build:; forge build
 build-warn:; forge build
 
-test :; forge test -vv
-test-vvvv :; forge test -vvvv
+test :; forge test -vvv --fork-url $(SEPOLIA_RPC_URL)
+test-vvvv :; forge test -vvvv --fork-url $(SEPOLIA_RPC_URL)
 	
 snapshot :; forge snapshot
 

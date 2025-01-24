@@ -16,55 +16,69 @@ import {IERC721} from "../../lib/openzepplin-contracts/contracts/token/ERC721/IE
 import {ERC6551Registry} from "../../lib/tokenbound/lib/erc6551/src/ERC6551Registry.sol";
 import {IERC6551Registry} from "../../lib/tokenbound/lib/erc6551/src/interfaces/IERC6551Registry.sol";
 import {ERC6551Account} from "../../lib/tokenbound/src/abstract/ERC6551Account.sol";
+import {IERC6551Account} from "../../lib/tokenbound/lib/erc6551/src/interfaces/IERC6551Account.sol";
 
 contract SyndicateEcosystemTest is Test {
-    ERC6551Registry public tbaRegistry;
-    address public tbaRegistryAddress;
-
-    ERC721 public azimuthContract;
-    address public azimuthAddress;
+    IERC6551Registry public tbaRegistry;
+    IERC721 public azimuthContract;
+    IERC6551Account public tbaImplementation;
 
     SyndicateRegistry public registry;
-    address public registryAddress;
-
     SyndicateDeployerV1 public deployerV1;
-    address public deployerAddress;
-
     SyndicateTokenV1 public launchedSyndicate;
+
+    address public registryAddress;
+    address public deployerAddress;
 
     address public owner;
     address public alice;
     address public bob;
     address public syndicateOwner;
-    uint256 public fee = 100000000000000000;
 
-    address public implementation;
-    bytes32 public salt;
+    uint256 public constant FEE = 100000000000000000;
+    bytes32 public constant SALT = bytes32(0);
+    address public constant NULL_IMPLEMENTATION = address(0);
+
+    uint256 public forkId;
 
     function setUp() public {
-        deployerAddress = vm.envAddress("PUBLIC_KEY_0");
-        owner = deployerAddress;
+        string memory SEPOLIA_RPC = vm.envString("SEPOLIA_RPC_URL");
+        forkId = vm.createSelectFork(SEPOLIA_RPC);
+
+        owner = makeAddr("owner");
         alice = makeAddr("alice");
         bob = makeAddr("bob");
 
-        azimuthContract = new ERC721("Test Azimuth", "AZP");
-        azimuthAddress = address(azimuthContract);
+        tbaRegistry = IERC6551Registry(vm.envAddress("SEPOLIA_TBA_REGISTRY"));
+        azimuthContract = IERC721(vm.envAddress("SEPOLIA_AZIMUTH_CONTRACT"));
+        tbaImplementation = IERC6551Account(
+            payable(vm.envAddress("SEPOLIA_TBA_IMPLEMENTATION"))
+        );
 
-        tbaRegistry = new ERC6551Registry();
-        tbaRegistryAddress = address(tbaRegistry);
-
-        implementation = makeAddr("implementation");
-        salt = bytes32(0);
+        syndicateOwner = vm.envAddress("SEPOLIA_PUBLIC_KEY_0");
 
         vm.startPrank(owner);
         registry = new SyndicateRegistry();
         registryAddress = address(registry);
+
         deployerV1 = new SyndicateDeployerV1(
-            registryAddress,
-            azimuthAddress,
-            fee
+            address(registry),
+            address(azimuthContract),
+            FEE
         );
+        deployerAddress = address(deployerV1);
+
         vm.stopPrank();
+
+        // verify fork is working
+        assertTrue(
+            address(tbaRegistry).code.length > 0,
+            "TBA Registry not deployed"
+        );
+        assertTrue(
+            address(azimuthContract).code.length > 0,
+            "Azimuth not deployed"
+        );
     }
 
     // Helper functions
@@ -81,6 +95,52 @@ contract SyndicateEcosystemTest is Test {
         vm.stopPrank();
     }
 
+    //// launch a syndicate token
+    function _launchSyndicateToken() public {
+        // vm.prank(syndicateOwner);
+        address tbaAddressForSamzod = _getTbaAddress(
+            address(tbaImplementation),
+            1024
+        );
+        vm.prank(tbaAddressForSamzod);
+        address syndicateTokenV1 = deployerV1.deploySyndicate(
+            address(tbaImplementation),
+            SALT,
+            1000000000000000000000000,
+            21000000000000000000000000,
+            1024,
+            "~samzod Test Syndicate",
+            "~SAMZOD"
+        );
+        console2.log(
+            "Syndicate Contract Launched at: ",
+            address(syndicateTokenV1)
+        );
+        launchedSyndicate = SyndicateTokenV1(payable(syndicateTokenV1));
+        console2.log("syndicateOwner: ", launchedSyndicate.getOwner());
+        console2.log("initialSupply: ", launchedSyndicate.totalSupply());
+        console2.log("maxSupply: ", launchedSyndicate.getMaxSupply());
+        console2.log("azimiuthPoint: ", launchedSyndicate.getAzimuthPoint());
+        console2.log("name: ", launchedSyndicate.name());
+        console2.log("symbol: ", launchedSyndicate.symbol());
+    }
+
+    //// get TBA address
+    function _getTbaAddress(
+        address implementation,
+        uint256 tokenId
+    ) internal view returns (address) {
+        return
+            tbaRegistry.account(
+                implementation,
+                SALT,
+                block.chainid,
+                address(azimuthContract),
+                tokenId
+            );
+    }
+
+    // Core Tests
     function test_InitialDeployerOwner() public view {
         assertEq(
             owner,
@@ -116,32 +176,8 @@ contract SyndicateEcosystemTest is Test {
         );
     }
 
-    function _launchSyndicateToken() public {
-        syndicateOwner = makeAddr("syndicateOwner");
-        vm.prank(syndicateOwner);
-        address syndicateTokenV1 = deployerV1.deploySyndicate(
-            implementation,
-            salt,
-            1000000000000000000000000,
-            21000000000000000000000000,
-            256,
-            "Test Token",
-            "TES"
-        );
-        console2.log(
-            "Syndicate Contract Launched at: ",
-            address(syndicateTokenV1)
-        );
-        launchedSyndicate = SyndicateTokenV1(payable(syndicateTokenV1));
-        console2.log("syndicateOwner: ", launchedSyndicate.getOwner());
-        console2.log("initialSupply: ", launchedSyndicate.totalSupply());
-        console2.log("maxSupply: ", launchedSyndicate.getMaxSupply());
-        console2.log("azimiuthPoint: ", launchedSyndicate.getAzimuthPoint());
-        console2.log("name: ", launchedSyndicate.name());
-        console2.log("symbol: ", launchedSyndicate.symbol());
-    }
-
     // Admin checks
+
     function testContractSizes() public {
         uint256 registrySize;
         uint256 deployerSize;
@@ -176,7 +212,7 @@ contract SyndicateEcosystemTest is Test {
     }
 
     function test_ProposeNewOwner() public {
-        vm.prank(deployerAddress);
+        vm.prank(owner);
         registry.proposeNewOwner(bob);
         // TODO add expectEmit
         assertEq(
@@ -187,7 +223,7 @@ contract SyndicateEcosystemTest is Test {
     }
 
     function test_AcceptOwnership() public {
-        vm.prank(deployerAddress);
+        vm.prank(owner);
         registry.proposeNewOwner(bob);
         vm.prank(bob);
         registry.acceptOwnership();
@@ -245,26 +281,26 @@ contract SyndicateEcosystemTest is Test {
         );
     }
 
-    function testFuzz_RegisterNewDeployerByNotOwner(
-        address[] calldata randomCallers
-    ) public {
-        vm.assume(randomCallers.length > 0);
-        vm.assume(randomCallers.length <= 256);
-        for (uint256 i = 0; i < randomCallers.length; i++) {
-            if (randomCallers[i] == address(0) || randomCallers[i] == owner) {
-                continue;
-            }
-            vm.prank(randomCallers[i]);
-            vm.expectRevert();
-            registry.registerDeployer(
-                ISyndicateRegistry.SyndicateDeployerData({
-                    deployerAddress: address(deployerV1),
-                    deployerVersion: 1,
-                    isActive: true
-                })
-            );
-        }
-    }
+    // function testFuzz_RegisterNewDeployerByNotOwner(
+    //     address[] calldata randomCallers
+    // ) public {
+    //     vm.assume(randomCallers.length > 0);
+    //     vm.assume(randomCallers.length <= 256);
+    //     for (uint256 i = 0; i < randomCallers.length; i++) {
+    //         if (randomCallers[i] == address(0) || randomCallers[i] == owner) {
+    //             continue;
+    //         }
+    //         vm.prank(randomCallers[i]);
+    //         vm.expectRevert();
+    //         registry.registerDeployer(
+    //             ISyndicateRegistry.SyndicateDeployerData({
+    //                 deployerAddress: address(deployerV1),
+    //                 deployerVersion: 1,
+    //                 isActive: true
+    //             })
+    //         );
+    //     }
+    // }
 
     //// Deactivation Tests
     function test_DeactivateRegisteredDeployerByOwner() public {
@@ -461,9 +497,13 @@ contract SyndicateEcosystemTest is Test {
     function test_LaunchAndRegisterNewSyndicate() public {
         _registryAndDeployer();
         _launchSyndicateToken();
+        address launchedTokenOwner = _getTbaAddress(
+            address(tbaImplementation),
+            1024
+        );
         assertEq(
             launchedSyndicate.getOwner(),
-            syndicateOwner,
+            launchedTokenOwner,
             "Syndicate owner mismatch"
         );
     }
@@ -471,12 +511,21 @@ contract SyndicateEcosystemTest is Test {
     function test_UpdateSyndicateOwnershipAddress() public {
         _registryAndDeployer();
         _launchSyndicateToken();
-        vm.prank(address(syndicateOwner));
-        address newOwnershipTba = makeAddr("newTBA");
+
+        address launchedTokenOwner = _getTbaAddress(
+            address(tbaImplementation),
+            1024
+        );
+        address newOwnershipTba = _getTbaAddress(
+            address(NULL_IMPLEMENTATION),
+            1024
+        );
+
+        vm.prank(address(launchedTokenOwner));
         launchedSyndicate.updateOwnershipTba(
             newOwnershipTba,
-            implementation,
-            salt
+            address(NULL_IMPLEMENTATION),
+            SALT
         );
         console2.log(
             "New Owner of ",

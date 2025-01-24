@@ -84,7 +84,7 @@ contract SyndicateDeployerV1 is ISyndicateDeployerV1 {
         );
         require(
             proposedTbaAddress == derivedTba,
-            "Proposed token owner not a valid TBA associated with Uribt ID"
+            "Proposed token owner not a valid TBA associated with Urbit ID"
         );
         _;
     }
