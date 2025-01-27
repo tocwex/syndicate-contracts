@@ -83,7 +83,7 @@ contract SyndicateEcosystemTest is Test {
 
     // Helper functions
     //// Registry and Deployer are live
-    function _registryAndDeployer() public {
+    function _registerDeployer() public {
         vm.startPrank(owner);
         registry.registerDeployer(
             ISyndicateRegistry.SyndicateDeployerData({
@@ -123,6 +123,11 @@ contract SyndicateEcosystemTest is Test {
         console2.log("azimiuthPoint: ", launchedSyndicate.getAzimuthPoint());
         console2.log("name: ", launchedSyndicate.name());
         console2.log("symbol: ", launchedSyndicate.symbol());
+
+        assertTrue(
+            address(syndicateTokenV1).code.length > 0,
+            "Syndicate Token not deployed"
+        );
     }
 
     //// get TBA address
@@ -141,15 +146,21 @@ contract SyndicateEcosystemTest is Test {
     }
 
     // Core Tests
-    function test_InitialDeployerOwner() public view {
+    //// Registry Tests
+    function test_InitialDeploymentOwnership() public view {
         assertEq(
             owner,
+            registry.getOwner(),
+            "Owner should be the deployment address"
+        );
+        assertEq(
+            registry.getOwner(),
             deployerV1.getOwner(),
-            "Owner should be the address that launched the contract"
+            "Owner should be the registry contract owner"
         );
     }
 
-    function test_ProposeNewOwnerByOwner() public {
+    function test_ProposeNewRegistryOwnerByOwner() public {
         vm.prank(owner);
         registry.proposeNewOwner(bob);
         assertEq(
@@ -159,7 +170,7 @@ contract SyndicateEcosystemTest is Test {
         );
     }
 
-    function test_AcceptOwnershipByPendingOwner() public {
+    function test_AcceptRegistryOwnershipByPendingOwner() public {
         vm.prank(owner);
         registry.proposeNewOwner(bob);
         assertEq(
@@ -176,73 +187,10 @@ contract SyndicateEcosystemTest is Test {
         );
     }
 
-    // Admin checks
+    //// TODO add reject registry ownership proposal tests
+    //// TODO add nullify registry ownership proposal tests
+    //// TODO add renounce registry ownership tests
 
-    function testContractSizes() public {
-        uint256 registrySize;
-        uint256 deployerSize;
-        uint256 tokenSize;
-
-        _registryAndDeployer();
-        _launchSyndicateToken();
-
-        address registryAddr = address(registry);
-        address deployerAddr = address(deployerV1);
-        address tokenAddr = address(launchedSyndicate);
-
-        assembly {
-            registrySize := extcodesize(registryAddr)
-            deployerSize := extcodesize(deployerAddr)
-            tokenSize := extcodesize(tokenAddr)
-        }
-
-        console2.log("Registry contract size:", registrySize);
-        console2.log("Deployer contract size:", deployerSize);
-        console2.log("Token contract size:", tokenSize);
-    }
-
-    // Ownership Transfer Tests
-
-    function test_InitialRegistryOwner() public view {
-        assertEq(
-            owner,
-            registry.getOwner(),
-            "Registry owner should be the address that launched the contract"
-        );
-    }
-
-    function test_ProposeNewOwner() public {
-        vm.prank(owner);
-        registry.proposeNewOwner(bob);
-        // TODO add expectEmit
-        assertEq(
-            bob,
-            registry.getPendingOwner(),
-            "Pending Owner should be _pendingOwner"
-        );
-    }
-
-    function test_AcceptOwnership() public {
-        vm.prank(owner);
-        registry.proposeNewOwner(bob);
-        vm.prank(bob);
-        registry.acceptOwnership();
-        // TODO add expectEmit
-        assertEq(
-            bob,
-            registry.getOwner(),
-            "Owner should be pending owner that called the acceptOwner function"
-        );
-    }
-
-    //// TODO add reject ownership proposal test
-    //// TODO add nullify ownership proposal test
-    //// TODO add renounce ownership test
-
-    // Getter function tests
-    //// TODO add test for getter functions if necessary
-
-    // Deployer Registration Tests
     function test_RegisterNewDeployerByOwner() public {
         vm.expectEmit(true, false, false, true); // index 1 has value, 2 and 3 no value, 4 has data for non-indexed values
         emit ISyndicateRegistry.DeployerRegistered(
@@ -268,8 +216,6 @@ contract SyndicateEcosystemTest is Test {
         // TODO add expect Emit
     }
 
-    // TODO add test of adding a second deployer
-
     function testFail_RegisterNewDeployerByNotOwner() public {
         vm.prank(bob);
         registry.registerDeployer(
@@ -281,28 +227,36 @@ contract SyndicateEcosystemTest is Test {
         );
     }
 
-    // function testFuzz_RegisterNewDeployerByNotOwner(
-    //     address[] calldata randomCallers
-    // ) public {
-    //     vm.assume(randomCallers.length > 0);
-    //     vm.assume(randomCallers.length <= 256);
-    //     for (uint256 i = 0; i < randomCallers.length; i++) {
-    //         if (randomCallers[i] == address(0) || randomCallers[i] == owner) {
-    //             continue;
-    //         }
-    //         vm.prank(randomCallers[i]);
-    //         vm.expectRevert();
-    //         registry.registerDeployer(
-    //             ISyndicateRegistry.SyndicateDeployerData({
-    //                 deployerAddress: address(deployerV1),
-    //                 deployerVersion: 1,
-    //                 isActive: true
-    //             })
-    //         );
-    //     }
-    // }
+    // TODO add test of adding a second deployer
+    // TODO testFAIL_RegisterDeployerWithExistingVersionNumber
 
-    //// Deactivation Tests
+    function testFuzz_RegisterNewDeployerByNotOwner(
+        address[] calldata randomCallers
+    ) public {
+        vm.assume(randomCallers.length > 0);
+        vm.assume(randomCallers.length <= 256);
+        for (uint256 i = 0; i < randomCallers.length; i++) {
+            if (randomCallers[i] == address(0) || randomCallers[i] == owner) {
+                continue;
+            }
+            vm.prank(randomCallers[i]);
+            vm.expectRevert();
+            registry.registerDeployer(
+                ISyndicateRegistry.SyndicateDeployerData({
+                    deployerAddress: address(deployerV1),
+                    deployerVersion: 1,
+                    isActive: true
+                })
+            );
+        }
+    }
+
+    // TODO testFuzz_RegisterSyndicateTokenInRegistryByNonDeployer
+    // TODO testFuzz_UpdateSyndicateTokenOwnerRegistryByNonDeployer
+    // TODO testFail_UpdateSyndicateTokenOwnerRegistryByInactiveDeployer
+    // TK Should Token Ownership be updatable by an inactive deployer?
+
+    //// Deployer Tests
     function test_DeactivateRegisteredDeployerByOwner() public {
         vm.prank(owner);
         registry.registerDeployer(
@@ -369,8 +323,6 @@ contract SyndicateEcosystemTest is Test {
             })
         );
     }
-
-    //// Reactivation Tests
 
     function test_ReactivateRegisteredDeployerByOwner() public {
         // Register the deployer
@@ -490,12 +442,8 @@ contract SyndicateEcosystemTest is Test {
         );
     }
 
-    // TODO add test for failing to register a deployer with a version number matching that of an already existant deployer
-    // TODO add test_ChangeSyndicateDeployerFeeRecipient
-
-    // Syndicate Launching Tests
     function test_LaunchAndRegisterNewSyndicate() public {
-        _registryAndDeployer();
+        _registerDeployer();
         _launchSyndicateToken();
         address launchedTokenOwner = _getTbaAddress(
             address(tbaImplementation),
@@ -508,8 +456,16 @@ contract SyndicateEcosystemTest is Test {
         );
     }
 
-    function test_UpdateSyndicateOwnershipAddress() public {
-        _registryAndDeployer();
+    // TODO test_
+    // TODO add test_ChangeSyndicateDeployerFeeRecipientByRegistryOwner
+    // TODO testFail_ChangeSyndicateDeployerFeeRecipeintByNonOwnerFeeRecipient
+    // TODO testFail_ChangeSyndicateDeployerFeeRecipeintByNonOwnerFee
+    // TODO test_ChangeFeeAndRecieveExpectedAmountFromNewMint
+    // TODO test_ChangeRecipientAndConfirmAllProtocolFeesGoToNewRecipient
+
+    //// Syndicate Token Tests
+    function test_UpdateSyndicateOwnershipAddressToValidTba() public {
+        _registerDeployer();
         _launchSyndicateToken();
 
         address launchedTokenOwner = _getTbaAddress(
@@ -540,7 +496,39 @@ contract SyndicateEcosystemTest is Test {
         );
     }
 
+    // TODO testFail_UpdateSyndicateOwnershipAddressToInvalidTba
     // TODO testFail_UpdateSyndicateOwnershipAddressAsNotOwner
+    // TODO test_MintToAddressByOwnerAndFeePaidToFeeRecipient
+    // TODO testFail_MintToAddressByNonOwner
+    // TODO test_BatchMintToAddressByOwnerAndFeePaidToFeeRecipient
+    // TODO testFail_BatchMintToAddressByNonOwner
+    // TODO test_FreeMintToWhitelistedContractsByOwner
+    // TODO testFail_MintOverMaxSupplyByOwner
 
-    // Syndicate Management
+    // Admin checks
+    function testContractSizes() public {
+        uint256 registrySize;
+        uint256 deployerSize;
+        uint256 tokenSize;
+
+        _registerDeployer();
+        _launchSyndicateToken();
+
+        address registryAddr = address(registry);
+        address deployerAddr = address(deployerV1);
+        address tokenAddr = address(launchedSyndicate);
+
+        assembly {
+            registrySize := extcodesize(registryAddr)
+            deployerSize := extcodesize(deployerAddr)
+            tokenSize := extcodesize(tokenAddr)
+        }
+
+        console2.log("Registry contract size:", registrySize);
+        console2.log("Deployer contract size:", deployerSize);
+        console2.log("Token contract size:", tokenSize);
+    }
+
+    // Getter function tests
+    //// TODO add tests for getter functions if necessary
 }
