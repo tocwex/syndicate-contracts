@@ -129,30 +129,30 @@ contract DeploySyndicate is Script {
                 );
             }
         }
-
-        syndicateToken = SyndicateTokenV1(
-            payable(
-                deployerV1.deploySyndicate(
-                    config.implementationAddress,
-                    config.salt,
-                    config.initialSupply,
-                    config.maxSupply,
-                    config.azimuthPoint,
-                    config.tokenName,
-                    config.tokenSymbol
-                )
-            )
-        );
+        //
+        // syndicateToken = SyndicateTokenV1(
+        //     payable(
+        //         deployerV1.deploySyndicate(
+        //             config.implementationAddress,
+        //             config.salt,
+        //             config.initialSupply,
+        //             config.maxSupply,
+        //             config.azimuthPoint,
+        //             config.tokenName,
+        //             config.tokenSymbol
+        //         )
+        //     )
+        // );
 
         vm.stopBroadcast();
 
         console2.log("Registry Deployed to: ", address(registry));
         console2.log("DeployerV1 deployed to: ", address(deployerV1));
-        console2.log(
-            "Syndicate Token for: ",
-            msg.sender,
-            "deployed to: ",
-            address(syndicateToken)
-        );
+        //     console2.log(
+        //         "Syndicate Token for: ",
+        //         msg.sender,
+        //         "deployed to: ",
+        //         address(syndicateToken)
+        //     );
     }
 }

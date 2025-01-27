@@ -88,13 +88,14 @@ contract DeployConfig is Script {
         }
 
         if (block.chainid == 31337) {
+            // Local Anvil Devnet
             uint256 azimuthPoint = vm.envUint("ANVIL_AZIMUTH_POINT");
             address azimuthContract = vm.envAddress("ANVIL_AZIMUTH_CONTRACT");
             address implementationAddress = vm.envAddress(
                 "ANVIL_TBA_IMPLEMENTATION"
             );
             return
-                NetworkConfig({ // Local Anvil Devnet
+                NetworkConfig({
                     azimuthContract: azimuthContract,
                     existingRegistryAddress: address(0),
                     existingDeployerAddress: address(0),
