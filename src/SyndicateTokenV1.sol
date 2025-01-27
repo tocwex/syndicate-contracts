@@ -21,8 +21,10 @@ contract SyndicateTokenV1 is ERC20 {
     ISyndicateDeployerV1 public immutable i_syndicateDeployer;
     uint256 private immutable i_maxSupply;
     uint256 private immutable i_azimuthPoint;
+    uint256 private immutable i_protocolFeeMax;
 
     //// Regular State Variables
+    uint256 private _protocolFeeCurrent;
     address private _owner;
 
     // Events
@@ -36,6 +38,7 @@ contract SyndicateTokenV1 is ERC20 {
         uint256 initialSupply,
         uint256 maxSupply,
         uint256 azimuthPoint,
+        uint256 protocolFee,
         string memory name,
         string memory symbol
     ) ERC20(name, symbol) {
@@ -47,6 +50,8 @@ contract SyndicateTokenV1 is ERC20 {
         _owner = owner;
         i_maxSupply = maxSupply;
         i_azimuthPoint = azimuthPoint;
+        i_protocolFeeMax = protocolFee;
+        _protocolFeeCurrent = protocolFee;
         _mint(owner, initialSupply); // totalSupply is managed by _mint and _burn fuctions
     }
 
@@ -82,6 +87,8 @@ contract SyndicateTokenV1 is ERC20 {
         return _updateOwnershipTba(newOwner, tbaImplementation, salt);
     }
 
+    // TODO Add Function to Renounce Ownership
+
     function getDeployerAddress() external view returns (address) {
         return address(i_syndicateDeployer);
     }
@@ -98,6 +105,8 @@ contract SyndicateTokenV1 is ERC20 {
         return _owner;
     }
 
+    // TODO Add getter for fee recipient address
+
     //// internal
     function _mint(address account, uint256 amount) internal override {
         require(
@@ -112,21 +121,8 @@ contract SyndicateTokenV1 is ERC20 {
         address implementation,
         bytes32 salt
     ) internal returns (bool success) {
-        // bool isValid = i_syndicateDeployer.validateTokenOwnerChange(
-        //     newOwner,
-        //     i_azimuthPoint,
-        //     implementation,
-        //     salt
-        // );
-        // require(
-        //     isValid,
-        //     "New Owner must be a valid TBA associated with Urbit ID"
-        // );
-        //
         _owner = newOwner;
         success = true;
-
-        // TODO Update the ISyndicateDeployerV1 interface
 
         bool registeryUpdated = i_syndicateDeployer.registerTokenOwnerChange(
             newOwner,

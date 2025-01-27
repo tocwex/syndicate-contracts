@@ -3,7 +3,7 @@
 pragma solidity ^0.8.19;
 
 // TODO natspec for internal functions
-
+// TODO implement function for accepting ENS name
 import {SyndicateRegistry} from "./SyndicateRegistry.sol";
 import {ISyndicateRegistry} from "./interfaces/ISyndicateRegistry.sol";
 import {SyndicateTokenV1} from "./SyndicateTokenV1.sol";
@@ -136,6 +136,7 @@ contract SyndicateDeployerV1 is ISyndicateDeployerV1 {
                 initialSupply,
                 maxSupply,
                 azimuthPoint,
+                _fee,
                 name,
                 symbol
             );
@@ -200,6 +201,7 @@ contract SyndicateDeployerV1 is ISyndicateDeployerV1 {
         uint256 initialSupply,
         uint256 maxSupply,
         uint256 azimuthPoint,
+        uint256 protocolFee,
         string memory name,
         string memory symbol
     ) internal returns (address tokenContract) {
@@ -209,6 +211,7 @@ contract SyndicateDeployerV1 is ISyndicateDeployerV1 {
             initialSupply,
             maxSupply,
             azimuthPoint,
+            protocolFee,
             name,
             symbol
         );

@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPLv3
 
 // TODO Implement reentrancy guards
+// TODO implement function for accepting ENS name
+
 pragma solidity ^0.8.19;
 
 import {SyndicateTokenV1} from "./SyndicateTokenV1.sol";
