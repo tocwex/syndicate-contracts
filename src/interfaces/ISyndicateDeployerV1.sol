@@ -41,6 +41,12 @@ interface ISyndicateDeployerV1 {
     /// @param feeRecipient The address to recieve protocol fees
     event FeeRecipientUpdated(address feeRecipient);
 
+    // TODO add natspec
+    event PermissionedContractAdded(address permissionedContract);
+
+    // TODO add natspec
+    event PermissionedContractRemoved(address permissionedContract);
+
     // Errors
     // TODO Add natspec
     // error Unauthorized();
@@ -95,6 +101,16 @@ interface ISyndicateDeployerV1 {
         address newFeeRecipient
     ) external returns (bool success);
 
+    // TODO add natspec
+    function addPermissionedContract(
+        address contractAddress
+    ) external returns (bool success);
+
+    // TODO add natspec
+    function removePermissionedContract(
+        address contractAddress
+    ) external returns (bool success);
+
     /// @notice called to get address of registry contract
     /// @dev
     /// @return syndicateRegistry The address of the registry contract which implements the ISyndicateRegistry interface
@@ -119,4 +135,9 @@ interface ISyndicateDeployerV1 {
     /// @dev
     /// @return fee The percentage fee rate with a default 18 decimal places
     function getFee() external view returns (uint256 fee);
+
+    // TODO add natspec
+    function checkIfPermissioned(
+        address contractAddress
+    ) external view returns (bool isPermissioned);
 }

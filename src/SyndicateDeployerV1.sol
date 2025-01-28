@@ -3,7 +3,9 @@
 pragma solidity ^0.8.19;
 
 // TODO natspec for internal functions
+// TODO implement reentrancy guards
 // TODO implement function for accepting ENS name
+
 import {SyndicateRegistry} from "./SyndicateRegistry.sol";
 import {ISyndicateRegistry} from "./interfaces/ISyndicateRegistry.sol";
 import {SyndicateTokenV1} from "./SyndicateTokenV1.sol";
@@ -14,8 +16,7 @@ import {IERC721} from "../lib/openzepplin-contracts/contracts/token/ERC721/IERC7
 contract SyndicateDeployerV1 is ISyndicateDeployerV1 {
     // Variables
     //// Constants
-    IERC6551Registry private constant TBA_REGISTRY =
-        IERC6551Registry(0x000000006551c19487814612e58FE06813775758);
+    IERC6551Registry private constant TBA_REGISTRY = IERC6551Registry(0x000000006551c19487814612e58FE06813775758);
 
     //// Immutables
     ISyndicateRegistry private immutable i_registry;
@@ -25,8 +26,11 @@ contract SyndicateDeployerV1 is ISyndicateDeployerV1 {
     address private _feeRecipient;
     uint256 private _fee;
 
+    // Arrays
+
     // Mappings
-    mapping(address => bool) _deployedSyndicates;
+    mapping(address => bool) private _deployedSyndicates;
+    mapping(address => bool) private _permissionedContracts;
 
     // Modifiers
 
@@ -37,25 +41,15 @@ contract SyndicateDeployerV1 is ISyndicateDeployerV1 {
     }
 
     modifier onlyActive() {
-        ISyndicateRegistry.SyndicateDeployerData
-            memory syndicateDeployerData = i_registry.getDeployerData(
-                address(this)
-            );
-        require(
-            syndicateDeployerData.isActive,
-            "Inactive Deployer cannot launch Syndicate Token"
-        );
+        ISyndicateRegistry.SyndicateDeployerData memory syndicateDeployerData =
+            i_registry.getDeployerData(address(this));
+        require(syndicateDeployerData.isActive, "Inactive Deployer cannot launch Syndicate Token");
         _;
     }
 
     modifier onlyUnlaunched(uint256 azimuthPoint) {
-        require(
-            azimuthPoint < 65535,
-            "Only Stars and Galaxies can launch Syndicates from this deployer"
-        );
-        bool isLaunched = i_registry.getSyndicateTokenExistsUsingAzimuthPoint(
-            azimuthPoint
-        );
+        require(azimuthPoint < 65535, "Only Stars and Galaxies can launch Syndicates from this deployer");
+        bool isLaunched = i_registry.getSyndicateTokenExistsUsingAzimuthPoint(azimuthPoint);
         require(!isLaunched, "This syndicate already exists");
         _;
     }
@@ -65,27 +59,11 @@ contract SyndicateDeployerV1 is ISyndicateDeployerV1 {
         _;
     }
 
-    modifier onlyValidTba(
-        address proposedTbaAddress,
-        uint256 azimuthPoint,
-        address implementation,
-        bytes32 salt
-    ) {
-        require(
-            azimuthPoint < 65535,
-            "Only Stars and Galaxies can launch Syndicates from this deployer"
-        );
-        address derivedTba = TBA_REGISTRY.account(
-            implementation,
-            salt,
-            block.chainid,
-            address(i_azimuthContract),
-            azimuthPoint
-        );
-        require(
-            proposedTbaAddress == derivedTba,
-            "Proposed token owner not a valid TBA associated with Urbit ID"
-        );
+    modifier onlyValidTba(address proposedTbaAddress, uint256 azimuthPoint, address implementation, bytes32 salt) {
+        require(azimuthPoint < 65535, "Only Stars and Galaxies can launch Syndicates from this deployer");
+        address derivedTba =
+            TBA_REGISTRY.account(implementation, salt, block.chainid, address(i_azimuthContract), azimuthPoint);
+        require(proposedTbaAddress == derivedTba, "Proposed token owner not a valid TBA associated with Urbit ID");
         _;
     }
 
@@ -94,11 +72,7 @@ contract SyndicateDeployerV1 is ISyndicateDeployerV1 {
         i_azimuthContract = IERC721(azimuthContract);
         _feeRecipient = msg.sender;
         _fee = fee;
-        emit DeployerV1Deployed({
-            registryAddress: registryAddress,
-            fee: fee,
-            feeRecipient: msg.sender
-        });
+        emit DeployerV1Deployed({registryAddress: registryAddress, fee: fee, feeRecipient: msg.sender});
     }
 
     // Functions
@@ -130,25 +104,11 @@ contract SyndicateDeployerV1 is ISyndicateDeployerV1 {
         onlyValidTba(msg.sender, azimuthPoint, implementation, salt)
         returns (address syndicateToken)
     {
-        return
-            _deploySyndicate(
-                msg.sender,
-                initialSupply,
-                maxSupply,
-                azimuthPoint,
-                _fee,
-                name,
-                symbol
-            );
+        return _deploySyndicate(msg.sender, initialSupply, maxSupply, azimuthPoint, _fee, name, symbol);
     }
 
     // @inheritdoc ISyndicateDeployerV1
-    function registerTokenOwnerChange(
-        address newOwner,
-        uint256 azimuthPoint,
-        address implementation,
-        bytes32 salt
-    )
+    function registerTokenOwnerChange(address newOwner, uint256 azimuthPoint, address implementation, bytes32 salt)
         external
         onlySyndicate
         onlyValidTba(newOwner, azimuthPoint, implementation, salt)
@@ -163,10 +123,18 @@ contract SyndicateDeployerV1 is ISyndicateDeployerV1 {
     }
 
     /// @inheritdoc ISyndicateDeployerV1
-    function changeFeeRecipient(
-        address newFeeRecipient
-    ) external onlyOwner returns (bool success) {
+    function changeFeeRecipient(address newFeeRecipient) external onlyOwner returns (bool success) {
         return _changeFeeRecipient(newFeeRecipient);
+    }
+
+    // TODO Update ISyndicateDeployerV1 Interface
+    function addPermissionedContract(address contractAddress) external onlyOwner returns (bool success) {
+        return _addPermissionedContract(contractAddress);
+    }
+
+    // TODO Update ISyndicateDeployerV1 Interface
+    function removePermissionedContract(address contractAddress) external onlyOwner returns (bool success) {
+        return _removePermissionedContract(contractAddress);
     }
 
     // @inheritdoc ISyndicateDeployerV1
@@ -185,13 +153,18 @@ contract SyndicateDeployerV1 is ISyndicateDeployerV1 {
     }
 
     // @inheritdoc ISyndicateDeployerV1
-    function getFeeRecipient() external view returns (address feeRecient) {
+    function getFeeRecipient() external view returns (address feeRecipient) {
         return _feeRecipient;
     }
 
     // @inheritdoc ISyndicateDeployerV1
     function getFee() external view returns (uint256 fee) {
         return _fee;
+    }
+
+    // TODO add natspec
+    function checkIfPermissioned(address contractAddress) external view returns (bool isPermissioned) {
+        return _permissionedContracts[contractAddress];
     }
 
     //// Internal Functions
@@ -206,43 +179,26 @@ contract SyndicateDeployerV1 is ISyndicateDeployerV1 {
         string memory symbol
     ) internal returns (address tokenContract) {
         SyndicateTokenV1 syndicateTokenV1 = new SyndicateTokenV1(
-            address(this),
-            tokenOwner,
-            initialSupply,
-            maxSupply,
-            azimuthPoint,
-            protocolFee,
-            name,
-            symbol
+            address(this), tokenOwner, initialSupply, maxSupply, azimuthPoint, protocolFee, name, symbol
         );
 
-        ISyndicateRegistry.Syndicate memory syndicate = ISyndicateRegistry
-            .Syndicate({
-                syndicateOwner: tokenOwner,
-                syndicateContract: address(syndicateTokenV1),
-                syndicateDeployer: address(this),
-                syndicateLaunchTime: block.number,
-                azimuthPoint: azimuthPoint
-            });
+        ISyndicateRegistry.Syndicate memory syndicate = ISyndicateRegistry.Syndicate({
+            syndicateOwner: tokenOwner,
+            syndicateContract: address(syndicateTokenV1),
+            syndicateDeployer: address(this),
+            syndicateLaunchTime: block.number,
+            azimuthPoint: azimuthPoint
+        });
 
         _deployedSyndicates[address(syndicateTokenV1)] = true;
         i_registry.registerSyndicate(syndicate);
-        emit TokenDeployed({
-            token: address(syndicateTokenV1),
-            owner: tokenOwner
-        });
+        emit TokenDeployed({token: address(syndicateTokenV1), owner: tokenOwner});
         return address(syndicateTokenV1);
     }
 
     // TODO add natspec
-    function _registerTokenOwnerChange(
-        address syndicateToken,
-        address newOwner
-    ) internal returns (bool success) {
-        success = i_registry.updateSyndicateOwnerRegistration(
-            syndicateToken,
-            newOwner
-        );
+    function _registerTokenOwnerChange(address syndicateToken, address newOwner) internal returns (bool success) {
+        success = i_registry.updateSyndicateOwnerRegistration(syndicateToken, newOwner);
         emit TokenOwnerChanged({token: syndicateToken, newOwner: newOwner});
         return success;
     }
@@ -254,12 +210,27 @@ contract SyndicateDeployerV1 is ISyndicateDeployerV1 {
     }
 
     // TODO add natspec
-    function _changeFeeRecipient(
-        address newFeeRecipient
-    ) internal returns (bool success) {
+    function _changeFeeRecipient(address newFeeRecipient) internal returns (bool success) {
         _feeRecipient = newFeeRecipient;
         success = true;
         emit FeeRecipientUpdated({feeRecipient: newFeeRecipient});
+        return success;
+    }
+
+    // TODO add natspec
+    // TODO add events for permissioned contracts
+    function _addPermissionedContract(address contractAddress) internal returns (bool success) {
+        _permissionedContracts[contractAddress] = true;
+        success = true;
+        emit PermissionedContractAdded({permissionedContract: contractAddress});
+        return success;
+    }
+
+    // TODO add natspec
+    function _removePermissionedContract(address contractAddress) internal returns (bool success) {
+        _permissionedContracts[contractAddress] = false;
+        success = true;
+        emit PermissionedContractRemoved({permissionedContract: contractAddress});
         return success;
     }
 }

@@ -61,8 +61,17 @@ contract SyndicateTokenV1 is ERC20 {
         _;
     }
 
+    modifier onlyPermissionedContract() {
+        require(
+            i_syndicateDeployer.checkIfPermissioned(msg.sender),
+            "Unauthorized: Not a permissioned contract address"
+        );
+        _;
+    }
+
     // Functions
     //// receive
+
     receive() external payable {
         revert("Direct ETH transfers not accepted"); // TODO we could make this a donation to the registry owner?
     }
@@ -75,6 +84,13 @@ contract SyndicateTokenV1 is ERC20 {
     //// external
     function mint(address account, uint256 amount) external onlyOwner {
         return _mint(account, amount);
+    }
+
+    function permissionedMint(
+        address account,
+        uint256 amount
+    ) external onlyPermissionedContract {
+        return _permissionedMint(account, amount);
     }
 
     // TODO add batch minting function callable by owner
@@ -112,6 +128,14 @@ contract SyndicateTokenV1 is ERC20 {
         require(
             totalSupply() + amount <= i_maxSupply,
             "ERC20: Mint over maxSupply limit"
+        );
+        super._mint(account, amount);
+    }
+
+    function _permissionedMint(address account, uint256 amount) internal {
+        require(
+            totalSupply() + amount <= i_maxSupply,
+            "ERC20: Mint over masSupply limit"
         );
         super._mint(account, amount);
     }
