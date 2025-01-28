@@ -71,7 +71,8 @@ interface ISyndicateRegistry {
     event SyndicateRegistered(
         address indexed deployerAddress,
         address indexed syndicateToken,
-        address indexed owner
+        address indexed owner,
+        uint256 azimuthPoint
     );
 
     /// @notice emitted when a syndicate token owner is successfully updated

@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: GPLv3
 
 // TODO Implement reentrancy guards
-// TODO implement function for accepting ENS name
+// TODO Implement function for accepting ENS name
+// TODO Implement function for wiping old token registration; such that a deployerVNext would be *potentially* able to override a V1 deployment
 
 pragma solidity ^0.8.19;
 
@@ -314,7 +315,8 @@ contract SyndicateRegistry is ISyndicateRegistry {
         emit SyndicateRegistered({
             deployerAddress: msg.sender, // TODO triple check only the correct deployer can call this function
             syndicateToken: syndicate.syndicateContract,
-            owner: syndicate.syndicateOwner
+            owner: syndicate.syndicateOwner,
+            azimuthPoint: syndicate.azimuthPoint
         });
     }
 
