@@ -3,6 +3,10 @@
 pragma solidity ^0.8.19;
 
 // TODO update openzepplin contracts to ^5.0.0 ?
+// TODO make entire contract burnable? There should be some mechanism by which all tokens can be confirmed useless, which is checked by a new deployer before allowing an update in the registry by a V2 deployer.
+// TODO confirm best way to implement i_maxSupply; is it as a null value check, using openZepplin's ERC20Cap contract, etc.
+// TODO implment reentrancy guards
+// TODO implement function for accepting ENS name
 
 import {ERC20} from "@openzepplin/token/ERC20/ERC20.sol";
 import {ISyndicateDeployerV1} from "../src/interfaces/ISyndicateDeployerV1.sol";
@@ -61,6 +65,7 @@ contract SyndicateTokenV1 is ERC20 {
         _;
     }
 
+    // TODO Implement a dual level store checking if the owner wants to trust the check provided by the deployment contract, or if they want to also implement their own checks.
     modifier onlyPermissionedContract() {
         require(
             i_syndicateDeployer.checkIfPermissioned(msg.sender),
@@ -71,7 +76,6 @@ contract SyndicateTokenV1 is ERC20 {
 
     // Functions
     //// receive
-
     receive() external payable {
         revert("Direct ETH transfers not accepted"); // TODO we could make this a donation to the registry owner?
     }
@@ -103,7 +107,8 @@ contract SyndicateTokenV1 is ERC20 {
         return _updateOwnershipTba(newOwner, tbaImplementation, salt);
     }
 
-    // TODO Add Function to Renounce Ownership
+    // TODO Add function to Renounce Ownership
+    // TODO Add function to mark as Renouncing relationship and enabling fresh launch in the registry.
 
     function getDeployerAddress() external view returns (address) {
         return address(i_syndicateDeployer);
