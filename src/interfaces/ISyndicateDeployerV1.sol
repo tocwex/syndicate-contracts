@@ -111,6 +111,11 @@ interface ISyndicateDeployerV1 {
         address contractAddress
     ) external returns (bool success);
 
+    // TODO add natspec
+    function dissolveSyndicateInRegistry(
+        uint256 azimuthPoint
+    ) external returns (bool success);
+
     /// @notice called to get address of registry contract
     /// @dev
     /// @return syndicateRegistry The address of the registry contract which implements the ISyndicateRegistry interface

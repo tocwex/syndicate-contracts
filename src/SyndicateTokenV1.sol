@@ -8,16 +8,9 @@ pragma solidity ^0.8.19;
 
 import {ERC20} from "@openzepplin/token/ERC20/ERC20.sol";
 import {ISyndicateDeployerV1} from "../src/interfaces/ISyndicateDeployerV1.sol";
+import {ISyndicateTokenV1} from "../src/interfaces/ISyndicateTokenV1.sol";
 
-contract SyndicateTokenV1 is ERC20 {
-    // Syndicate Token Events
-    event ContractAddedToWhitelist(address contractAddress);
-    event contractRemovedFromWhitelist(address contractAddress);
-    event OwnershipRenounced(address lastOwner);
-    event OwnershipTbaUpdated(address newOwner);
-    event SyndicateDissolved(uint256 blockHeight);
-    event ProtocolFeeUpdated(uint256 newFee);
-
+contract SyndicateTokenV1 is ERC20, ISyndicateTokenV1 {
     // ERC20 Parent Contract Variables
     // mapping(address => uint256) private _balances;
     // mapping(address => mapping(address => uint256)) private _allowances;
@@ -311,7 +304,9 @@ contract SyndicateTokenV1 is ERC20 {
         require(_isCannonical, "Syndicate Token is already dissolved");
         _isCannonical = false;
         // TODO add call to Syndicate Deployer to dissolve the syndicate in the deployer mapping and in the registry Syndicate struct mapping for the azimuthPoint
-        success = i_syndicateDeployer.dissolveSyndicateInRegistry(azimuthPoint);
+        success = i_syndicateDeployer.dissolveSyndicateInRegistry(
+            i_azimuthPoint
+        );
 
         require(success, "Dissolution of syndicate failed");
         emit SyndicateDissolved(block.number);
