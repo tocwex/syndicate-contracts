@@ -5,6 +5,10 @@ pragma solidity ^0.8.19;
 // TODO confirm best way to implement i_maxSupply; is it as a null value check, using openZepplin's ERC20Cap contract, etc.
 // TODO implment reentrancy guards
 // TODO implement function for accepting ENS name
+// TODO add natspec for internal functions
+
+// TODO add a post-launch 'setMaxSupply' fuction???
+// TODO flag and function to prevent minting directly by the owner, such that they cannot 'rug' permissioned contracts by way of extraneous mints outside the system and then dump tokens on the market?
 
 import {ERC20} from "@openzepplin/token/ERC20/ERC20.sol";
 import {ISyndicateDeployerV1} from "../src/interfaces/ISyndicateDeployerV1.sol";
@@ -19,6 +23,7 @@ contract SyndicateTokenV1 is ERC20, ISyndicateTokenV1 {
     // string private _symbol;
     // State Variables
     //// Constants
+    uint256 private constant BASIS_POINTS = 10000;
 
     //// Immutables
     ISyndicateDeployerV1 public immutable i_syndicateDeployer;
@@ -210,7 +215,7 @@ contract SyndicateTokenV1 is ERC20, ISyndicateTokenV1 {
             totalSupply() + amount <= i_maxSupply,
             "ERC20: Mint over maxSupply limit"
         );
-        uint256 fee_ = (amount * _protocolFeeCurrent) / 10000; // TODO check decimals on different fee storage variables
+        uint256 fee_ = (amount * _protocolFeeCurrent) / BASIS_POINTS; // TODO check decimals on different fee storage variables
         uint256 amount_ = amount - fee_;
 
         address feeRecipient = i_syndicateDeployer.getFeeRecipient();
@@ -290,20 +295,23 @@ contract SyndicateTokenV1 is ERC20, ISyndicateTokenV1 {
             salt
         );
         require(registeryUpdated, "Registry must have updated to proceed");
+
+        emit OwnershipTbaUpdated(newOwner);
+
         return success;
     }
 
     function _renounceOwnership() internal returns (bool success) {
         _owner = address(0);
-        emit OwnershipRenounced(msg.sender);
         success = true;
+        emit OwnershipRenounced(msg.sender);
         return success;
     }
 
     function _dissolveSyndicate() internal returns (bool success) {
         require(_isCannonical, "Syndicate Token is already dissolved");
         _isCannonical = false;
-        // TODO add call to Syndicate Deployer to dissolve the syndicate in the deployer mapping and in the registry Syndicate struct mapping for the azimuthPoint
+
         success = i_syndicateDeployer.dissolveSyndicateInRegistry(
             i_azimuthPoint
         );

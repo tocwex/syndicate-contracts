@@ -35,7 +35,7 @@ contract SyndicateEcosystemTest is Test {
     address public bob;
     address public syndicateOwner;
 
-    uint256 public constant FEE = 100000000000000000;
+    uint256 public constant FEE = 500; // in basis points (500 = 5%)
     bytes32 public constant SALT = bytes32(0);
     address public constant NULL_IMPLEMENTATION = address(0);
 
@@ -187,9 +187,22 @@ contract SyndicateEcosystemTest is Test {
         );
     }
 
-    //// TODO add reject registry ownership proposal tests
-    //// TODO add nullify registry ownership proposal tests
-    //// TODO add renounce registry ownership tests
+    function test_rejectRegistryOwnershipByPendingOwner() public {
+        vm.prank(owner);
+        registry.proposeNewOwner(bob);
+        vm.prank(bob);
+        registry.rejectOwnership();
+        assertEq(
+            owner,
+            registry.getOwner(),
+            "Old owner should still be the owner"
+        );
+    }
+
+    //// TODO test_nullifyRegistryOwnershipProposalByOwner
+    //// TODO testFail_nullifyRegistryOwnershipProposalByNotOwner
+    //// TODO test_renounceRegistryOwnershipByOwner
+    //// TODO testFail_renounceRegistryOwnershipByNotOwner
 
     function test_RegisterNewDeployerByOwner() public {
         vm.expectEmit(true, false, false, true); // index 1 has value, 2 and 3 no value, 4 has data for non-indexed values
@@ -208,6 +221,7 @@ contract SyndicateEcosystemTest is Test {
             })
         );
         // TODO add more complex version numbering or logic checks?
+        // TODO I think this should actually fail due to the registry version already existing?
         assertEq(
             true,
             registry.isRegisteredDeployer(address(deployerV1)),
@@ -227,8 +241,9 @@ contract SyndicateEcosystemTest is Test {
         );
     }
 
-    // TODO add test of adding a second deployer
-    // TODO testFAIL_RegisterDeployerWithExistingVersionNumber
+    // TODO test_RegisterSecondDeployerByOwner
+    // TODO testFail_RegisterSecondDeployerByNotOwner
+    // TODO testFail_RegisterDeployerWithExistingVersionNumber
 
     function testFuzz_RegisterNewDeployerByNotOwner(
         address[] calldata randomCallers
@@ -254,7 +269,7 @@ contract SyndicateEcosystemTest is Test {
     // TODO testFuzz_RegisterSyndicateTokenInRegistryByNonDeployer
     // TODO testFuzz_UpdateSyndicateTokenOwnerRegistryByNonDeployer
     // TODO testFail_UpdateSyndicateTokenOwnerRegistryByInactiveDeployer
-    // TK Should Token Ownership be updatable by an inactive deployer?
+    // TK Should Token Ownership be updatable by an inactive deployer? Methinks yes.
 
     //// Deployer Tests
     function test_DeactivateRegisteredDeployerByOwner() public {
@@ -456,12 +471,14 @@ contract SyndicateEcosystemTest is Test {
         );
     }
 
-    // TODO test_
-    // TODO add test_ChangeSyndicateDeployerFeeRecipientByRegistryOwner
-    // TODO testFail_ChangeSyndicateDeployerFeeRecipeintByNonOwnerFeeRecipient
-    // TODO testFail_ChangeSyndicateDeployerFeeRecipeintByNonOwnerFee
-    // TODO test_ChangeFeeAndRecieveExpectedAmountFromNewMint
+    // TODO test_ChangeSyndicateDeployerFeeRecipientByRegistryOwner
+    // TODO testFail_ChangeSyndicateDeployerFeeRecipientByNotOwner
+    // TODO test_ChangeFeeAmountAndRecieveExpectedAmountFromNewMint
     // TODO test_ChangeRecipientAndConfirmAllProtocolFeesGoToNewRecipient
+    // TODO test_AddPermissionedContractMappingByOwner
+    // TODO testFail_AddPermissionedContractMappingByNotOwner
+    // TODO testFuzz_DissolveSyndicateViaDeployerByNotSyndicateTokenContract
+    // TODO testFuzz_RegisterSyndicateViaDeployerByNotSyndicateTokenContract
 
     //// Syndicate Token Tests
     function test_UpdateSyndicateOwnershipAddressToValidTba() public {
@@ -502,8 +519,20 @@ contract SyndicateEcosystemTest is Test {
     // TODO testFail_MintToAddressByNonOwner
     // TODO test_BatchMintToAddressByOwnerAndFeePaidToFeeRecipient
     // TODO testFail_BatchMintToAddressByNonOwner
-    // TODO test_FreeMintToWhitelistedContractsByOwner
+    // TODO test_TurnOnCustomWhitelistByOwner
+    // TODO testFail_TurnOnCustomWhitelistByNotOwner
+    // TODO test_TurnOffCustomWhitelistByOwner
+    // TODO test_TurnOffCustomWhitelistByNotOwner
+    // TODO test_FreeMintByWhitelistedAddress
+    // TODO test_FreeBatchMintByWhitelistedAddress
     // TODO testFail_MintOverMaxSupplyByOwner
+    // TODO test_DissolveSyndicateByOwner
+    // TODO testFail_DissolveSyndicateByNotOwner
+    // TODO test_NewSyndicateAfterDissolutionByUrbitTba
+    // TODO testFail_NewSyndicateAfterDissolutionByNotUrbitTBA
+
+    // TODO test_FeeCalculationForBatchMintByOwner
+    // TODO test_FeeCalculationForMintByOwner
 
     // Admin checks
     function testContractSizes() public {

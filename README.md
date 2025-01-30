@@ -10,15 +10,15 @@ For development purposes, we will be using `pragma solidity ^0.8.19`, but prior 
 
 ## TODOS
 
-- [ ] Add eligibility check on uint256 azimuthPoint claiming and association with ownership addresses and SyndicateTokenV1 contract launching
+- [x] Add eligibility check on uint256 azimuthPoint claiming and association with ownership addresses and SyndicateTokenV1 contract launching
 - [ ] Deployment Contract test cases
 - [ ] Test event emissions
 - [ ] Robust testing suite
 - [ ] Finish natspec documentation for interfaces
 - [ ] Finish natspec documentation for contract code
-- [ ] Decide on upgrade to v5.0.0 of OpenZepplin contracts or not
+- [x] Decide on upgrade to v5.0.0 of OpenZepplin contracts or not
 - [ ] Further gas optimization
-- [ ] OPTIONAL: Look into Proxy and Upgradeable Proxy possibilities
+- [x] OPTIONAL: Look into Proxy and Upgradeable Proxy possibilities
 
 ## Foundry
 
