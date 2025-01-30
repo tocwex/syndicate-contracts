@@ -310,6 +310,8 @@ contract SyndicateRegistry is ISyndicateRegistry {
         Syndicate calldata syndicate
     ) internal returns (bool success) {
         _syndicate[syndicate.azimuthPoint] = syndicate;
+        _addressToAzimuthPoint[syndicate.syndicateContract] = syndicate
+            .azimuthPoint;
         success = true;
         emit SyndicateRegistered({
             deployerAddress: msg.sender, // TODO triple check only the correct deployer can call this function

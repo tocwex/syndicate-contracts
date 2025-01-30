@@ -15,7 +15,7 @@ contract SyndicateTokenV1 is ERC20 {
     event contractRemovedFromWhitelist(address contractAddress);
     event OwnershipRenounced(address lastOwner);
     event OwnershipTbaUpdated(address newOwner);
-    event SyndicateDesolved(uint256 blockHeight);
+    event SyndicateDissolved(uint256 blockHeight);
     event ProtocolFeeUpdated(uint256 newFee);
 
     // ERC20 Parent Contract Variables
@@ -36,8 +36,8 @@ contract SyndicateTokenV1 is ERC20 {
     //// Regular State Variables
     uint256 private _protocolFeeCurrent;
     address private _owner;
-    bool private _customWhitelist = true; // TK This will mean anyone launching a v1 contract will need to execute a transaction in order to allow any future permissioned contracts to interact with their Syndicate Token
     bool private _isCannonical = true;
+    bool private _customWhitelist = true; // TK This will mean anyone launching a v1 contract will need to execute a transaction in order to allow any future permissioned contracts to interact with their Syndicate Token
 
     // Mappings
     mapping(address => bool) private _whitelistedContracts;
@@ -93,7 +93,7 @@ contract SyndicateTokenV1 is ERC20 {
     modifier onlySyndicateEcosystemOwner() {
         require(
             i_syndicateDeployer.getOwner() == msg.sender,
-            "Unauthorized: Only the registry owner may call this function"
+            "Unauthorized: Only the SyndicateDeployer owner may call this function"
         );
         _;
     }
@@ -147,8 +147,8 @@ contract SyndicateTokenV1 is ERC20 {
         return _renounceOwnership();
     }
 
-    function desolveSyndicate() external onlyOwner returns (bool success) {
-        return _desolveSyndicate();
+    function dissolveSyndicate() external onlyOwner returns (bool success) {
+        return _dissolveSyndicate();
     }
 
     function addWhitelistedContract(
@@ -177,6 +177,10 @@ contract SyndicateTokenV1 is ERC20 {
         return i_maxSupply;
     }
 
+    function getAzimuthPoint() external view returns (uint256) {
+        return i_azimuthPoint;
+    }
+
     function getMaxProtocolFee() external view returns (uint256) {
         return i_protocolFeeMax;
     }
@@ -185,12 +189,16 @@ contract SyndicateTokenV1 is ERC20 {
         return _protocolFeeCurrent;
     }
 
-    function getAzimuthPoint() external view returns (uint256) {
-        return i_azimuthPoint;
-    }
-
     function getOwner() external view returns (address) {
         return _owner;
+    }
+
+    function getSyndicateStatus() external view returns (bool isCannonical) {
+        isCannonical = _isCannonical;
+    }
+
+    function usesCustomWhitelist() external view returns (bool usesCustom) {
+        usesCustom = _customWhitelist;
     }
 
     function isWhitelistedContract(
@@ -199,16 +207,8 @@ contract SyndicateTokenV1 is ERC20 {
         isWhitelisted = _whitelistedContracts[contractAddress];
     }
 
-    function useCustomWhitelist() external view returns (bool usesCustom) {
-        usesCustom = _customWhitelist;
-    }
-
     function getFeeRecipient() external view returns (address feeRecipient) {
         feeRecipient = i_syndicateDeployer.getFeeRecipient();
-    }
-
-    function getSyndicateStatus() external view returns (bool isCannonical) {
-        isCannonical = _isCannonical;
     }
 
     //// internal
@@ -246,7 +246,7 @@ contract SyndicateTokenV1 is ERC20 {
 
         for (uint256 i = 0; i < amount.length; i++) {
             totalAmount += amount[i];
-            uint256 fee = (amount[i] * _protocolFeeCurrent) / 10000;
+            uint256 fee = (amount[i] * _protocolFeeCurrent) / 10000; // TODO check the decimals on fee calculations
             totalFee += fee;
             _permissionedMint(account[i], amount[i] - fee);
         }
@@ -307,7 +307,16 @@ contract SyndicateTokenV1 is ERC20 {
         return success;
     }
 
-    function _desolveSyndicate() internal returns (bool success) {}
+    function _dissolveSyndicate() internal returns (bool success) {
+        require(_isCannonical, "Syndicate Token is already dissolved");
+        _isCannonical = false;
+        // TODO add call to Syndicate Deployer to dissolve the syndicate in the deployer mapping and in the registry Syndicate struct mapping for the azimuthPoint
+        success = i_syndicateDeployer.dissolveSyndicateInRegistry(azimuthPoint);
+
+        require(success, "Dissolution of syndicate failed");
+        emit SyndicateDissolved(block.number);
+        return success;
+    }
 
     function _addWhitelistedContract(
         address contractAddress

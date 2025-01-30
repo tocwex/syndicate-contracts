@@ -5,6 +5,7 @@ pragma solidity ^0.8.19;
 // TODO natspec for internal functions
 // TODO implement reentrancy guards
 // TODO implement function for accepting ENS name
+// TODO implement a check in the token deployment that this AZP has not already deployed a token
 
 import {SyndicateRegistry} from "./SyndicateRegistry.sol";
 import {ISyndicateRegistry} from "./interfaces/ISyndicateRegistry.sol";
@@ -35,8 +36,7 @@ contract SyndicateDeployerV1 is ISyndicateDeployerV1 {
     // Modifiers
 
     modifier onlyOwner() {
-        address _owner = i_registry.getOwner();
-        require(msg.sender == _owner, "Unauthorized: Not owner");
+        require(msg.sender == i_registry.getOwner(), "Unauthorized: Not owner");
         _;
     }
 
@@ -55,7 +55,10 @@ contract SyndicateDeployerV1 is ISyndicateDeployerV1 {
     }
 
     modifier onlySyndicate() {
-        bool isSyndicate = _deployedSyndicates[msg.sender];
+        require(
+            _deployedSyndicates[msg.sender],
+            "Unauthorized: only syndicates launched from this deployer can call this function"
+        );
         _;
     }
 
@@ -137,7 +140,11 @@ contract SyndicateDeployerV1 is ISyndicateDeployerV1 {
         return _removePermissionedContract(contractAddress);
     }
 
+    function dissolveSyndicateInRegistry(uint256 azimuthPoint) external onlySyndicate returns (bool success) {
+        return _dissolveSyndicateInRegistry(azimuthPoint);
+    }
     // @inheritdoc ISyndicateDeployerV1
+
     function getRegistry() external view returns (address syndicateRegistry) {
         return address(i_registry);
     }
@@ -231,6 +238,23 @@ contract SyndicateDeployerV1 is ISyndicateDeployerV1 {
         _permissionedContracts[contractAddress] = false;
         success = true;
         emit PermissionedContractRemoved({permissionedContract: contractAddress});
+        return success;
+    }
+
+    function _dissolveSyndicateInRegistry(uint256 azimuthPoint) internal returns (bool success) {
+        ISyndicateRegistry.Syndicate memory syndicate = ISyndicateRegistry.Syndicate({
+            syndicateOwner: address(0),
+            syndicateContract: address(0),
+            syndicateDeployer: address(0),
+            syndicateLaunchTime: uint256(0),
+            azimuthPoint: azimuthPoint
+        });
+
+        _deployedSyndicates[msg.sender] = false;
+
+        i_registry.registerSyndicate(syndicate);
+        success = true;
+        // TODO Add Event
         return success;
     }
 }
