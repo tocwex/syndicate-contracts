@@ -2,7 +2,6 @@
 
 // TODO Implement reentrancy guards
 // TODO Implement function for accepting ENS name
-// TODO Implement function for wiping old token registration; such that a deployerVNext would be *potentially* able to override a V1 deployment
 
 pragma solidity ^0.8.19;
 
