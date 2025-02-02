@@ -20,6 +20,7 @@ contract SyndicateRegistry is ISyndicateRegistry {
     mapping(uint256 => Syndicate) private _syndicate; // azimuthPoint => syndicate token contract struct
     mapping(address => uint256) private _addressToAzimuthPoint; // syndicate token address to azimuth point
     mapping(address => bool) private _isRegisteredDeployer; // check if address is a registered deployer
+    mapping(address => bool) private _isActiveDeployer;
 
     // Modifiers
     modifier onlyOwner() {
@@ -36,6 +37,13 @@ contract SyndicateRegistry is ISyndicateRegistry {
         require(_isRegisteredDeployer[msg.sender], "Unauthorized");
         _;
     }
+
+    modifier onlyActiveDeployer() {
+        require(_isActiveDeployer[msg.sender], "Unauthorized");
+        _;
+    }
+
+    // TODO onlyActiveDeployer modifier to block registration of a new syndicate?
 
     // Constructor
     constructor() {
@@ -75,7 +83,7 @@ contract SyndicateRegistry is ISyndicateRegistry {
 
     function registerSyndicate(
         Syndicate calldata syndicate
-    ) external onlyValidDeployer returns (bool success) {
+    ) external onlyValidDeployer onlyActiveDeployer returns (bool success) {
         return _registerSyndicate(syndicate);
     }
 
@@ -128,6 +136,12 @@ contract SyndicateRegistry is ISyndicateRegistry {
         address checkAddress
     ) external view returns (bool isRegistered) {
         return _isRegisteredDeployer[checkAddress];
+    }
+
+    function isActiveDeployer(
+        address checkAddress
+    ) external view returns (bool isActive) {
+        return _isActiveDeployer[checkAddress];
     }
 
     function getDeployers()
@@ -264,6 +278,7 @@ contract SyndicateRegistry is ISyndicateRegistry {
             syndicateDeployerData.deployerAddress
         ] = syndicateDeployerData;
         _isRegisteredDeployer[syndicateDeployerData.deployerAddress] = true;
+        _isActiveDeployer[syndicateDeployerData.deployerAddress] = true;
 
         emit DeployerRegistered(
             syndicateDeployerData.deployerAddress,
@@ -285,6 +300,7 @@ contract SyndicateRegistry is ISyndicateRegistry {
         );
         require(deployerData.isActive, "Deployer already inactive");
         deployerData.isActive = false;
+        _isActiveDeployer[syndicateDeployerData.deployerAddress] = false;
         success = true;
         emit DeployerDeactivated(deployer, false);
         return success;
@@ -301,6 +317,8 @@ contract SyndicateRegistry is ISyndicateRegistry {
         );
         require(!deployerData.isActive, "Deployer already active");
         deployerData.isActive = true;
+        _isActiveDeployer[syndicateDeployerData.deployerAddress] = true;
+
         success = true;
         emit DeployerReactivated(deployer, true);
         return success;

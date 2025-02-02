@@ -199,10 +199,45 @@ contract SyndicateEcosystemTest is Test {
         );
     }
 
-    //// TODO test_nullifyRegistryOwnershipProposalByOwner
-    //// TODO testFail_nullifyRegistryOwnershipProposalByNotOwner
-    //// TODO test_renounceRegistryOwnershipByOwner
-    //// TODO testFail_renounceRegistryOwnershipByNotOwner
+    function test_nullifyRegistryOwnershipProposalByOwner() public {
+        vm.startPrank(owner);
+        registry.proposeNewOwner(bob);
+        registry.nullifyProposal();
+        assertEq(
+            owner,
+            registry.getOwner(),
+            "Old Owner should still be the owner"
+        );
+        assertEq(
+            address(0),
+            registry.getPendingOwner(),
+            "Pending owner should be reset to the null address"
+        );
+    }
+
+    function test_nullifyRegistryOwnershipProposalByNotOwner() public {
+        vm.prank(owner);
+        registry.proposeNewOwner(bob);
+        vm.prank(bob);
+        vm.expectRevert();
+        registry.nullifyProposal();
+    }
+
+    function test_renounceRegistryOwnershipByOwner() public {
+        vm.prank(owner);
+        registry.renounceOwnership();
+        assertEq(
+            address(0),
+            registry.getOwner(),
+            "Owner address should be the null address"
+        );
+    }
+
+    function test_renounceRegistryOwnershipByNotOwner() public {
+        vm.prank(bob);
+        vm.expectRevert();
+        registry.renounceOwnership();
+    }
 
     function test_RegisterNewDeployerByOwner() public {
         vm.expectEmit(true, false, false, true); // index 1 has value, 2 and 3 no value, 4 has data for non-indexed values
@@ -230,8 +265,9 @@ contract SyndicateEcosystemTest is Test {
         // TODO add expect Emit
     }
 
-    function testFail_RegisterNewDeployerByNotOwner() public {
+    function test_RegisterNewDeployerByNotOwner() public {
         vm.prank(bob);
+        vm.expectRevert();
         registry.registerDeployer(
             ISyndicateRegistry.SyndicateDeployerData({
                 deployerAddress: address(deployerV1),
@@ -242,8 +278,45 @@ contract SyndicateEcosystemTest is Test {
     }
 
     // TODO test_RegisterSecondDeployerByOwner
-    // TODO testFail_RegisterSecondDeployerByNotOwner
-    // TODO testFail_RegisterDeployerWithExistingVersionNumber
+    function test_RegisterSecondDeployerByOwner() public {
+        _registerDeployer();
+        address deployerV2 = makeAddr("deployerV2");
+        vm.prank(owner);
+        registry.registerDeployer(
+            ISyndicateRegistry.SyndicateDeployerData({
+                deployerAddress: address(deployerV2),
+                deployerVersion: 2,
+                isActive: true
+            })
+        );
+    }
+
+    function test_RegisterSecondDeployerByNotOwner() public {
+        _registerDeployer();
+        address deployerV2 = makeAddr("deployerV2");
+        vm.prank(bob);
+        vm.expectRevert();
+        registry.registerDeployer(
+            ISyndicateRegistry.SyndicateDeployerData({
+                deployerAddress: address(deployerV2),
+                deployerVersion: 2,
+                isActive: true
+            })
+        );
+    }
+
+    function test_ReRegisterDeployerByOwner() public {
+        _registerDeployer();
+        vm.prank(owner);
+        vm.expectRevert("Deployer is already registered");
+        registry.registerDeployer(
+            ISyndicateRegistry.SyndicateDeployerData({
+                deployerAddress: address(deployerV1),
+                deployerVersion: 1,
+                isActive: true
+            })
+        );
+    }
 
     function testFuzz_RegisterNewDeployerByNotOwner(
         address[] calldata randomCallers
@@ -266,8 +339,52 @@ contract SyndicateEcosystemTest is Test {
         }
     }
 
-    // TODO testFuzz_RegisterSyndicateTokenInRegistryByNonDeployer
+    function testFuzz_RegisterSyndicateTokenInRegistryByNonDeployer(
+        address[] calldata randomCallers
+    ) public {
+        address tokenOwner = makeAddr("tokenOwner");
+        address tokenContract = makeAddr("tokenContract");
+        ISyndicateRegistry.Syndicate memory syndicate = ISyndicateRegistry
+            .Syndicate({
+                syndicateOwner: tokenOwner,
+                syndicateContract: tokenContract,
+                syndicateDeployer: address(deployerV1),
+                syndicateLaunchTime: block.number,
+                azimuthPoint: 1
+            });
+        vm.assume(randomCallers.length > 0);
+        vm.assume(randomCallers.length <= 256);
+        for (uint256 i = 0; i < randomCallers.length; i++) {
+            if (randomCallers[i] == address(0) || randomCallers[i] == owner) {
+                continue;
+            }
+            vm.prank(randomCallers[i]);
+            vm.expectRevert();
+            registry.registerSyndicate(syndicate);
+        }
+    }
+
     // TODO testFuzz_UpdateSyndicateTokenOwnerRegistryByNonDeployer
+    function testFuzz_UpdateSyndicateTokenOwnerRegistryByNonDeployer(
+        address[] calldata randomCallers
+    ) public {
+        address newTokenOwner = makeAddr("newTokenOwner");
+        address tokenContract = makeAddr("tokenContract");
+        vm.assume(randomCallers.length > 0);
+        vm.assume(randomCallers.length <= 256);
+        for (uint256 i = 0; i < randomCallers.length; i++) {
+            if (randomCallers[i] == address(0) || randomCallers[i] == owner) {
+                continue;
+            }
+            vm.prank(randomCallers[i]);
+            vm.expectRevert();
+            registry.updateSyndicateOwnerRegistration(
+                tokenContract,
+                newTokenOwner
+            );
+        }
+    }
+
     // TODO testFail_UpdateSyndicateTokenOwnerRegistryByInactiveDeployer
     // TK Should Token Ownership be updatable by an inactive deployer? Methinks yes.
 
@@ -291,6 +408,11 @@ contract SyndicateEcosystemTest is Test {
             true,
             "Deployer should be active at this stage"
         );
+        assertEq(
+            dataBeforeDeactivation.isActive,
+            registry.isActiveDeployer(address(deployerV1)),
+            "Mapping and array values for is active should be the same prior to deactivation"
+        );
 
         vm.expectEmit(true, false, false, true); // index 1 has value, 2 and 3 no value, 4 has data for non-indexed values
         emit ISyndicateRegistry.DeployerDeactivated(address(deployerV1), false);
@@ -307,6 +429,11 @@ contract SyndicateEcosystemTest is Test {
             .getDeployerData(address(deployerV1));
 
         assertEq(currentData.isActive, false, "Deployer should be deactivated");
+        assertEq(
+            currentData.isActive,
+            registry.isActiveDeployer(address(deployerV1)),
+            "Mapping and array values for is active should be the same following deactivation"
+        );
     }
 
     function testFail_DeactivateRegisteredDeployerByNotOwner() public {

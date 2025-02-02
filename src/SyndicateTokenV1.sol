@@ -216,6 +216,7 @@ contract SyndicateTokenV1 is ERC20, ISyndicateTokenV1 {
             "ERC20: Mint over maxSupply limit"
         );
         uint256 fee_ = (amount * _protocolFeeCurrent) / BASIS_POINTS; // TODO check decimals on different fee storage variables
+        // TODO figure out how solidity handles rounding errors
         uint256 amount_ = amount - fee_;
 
         address feeRecipient = i_syndicateDeployer.getFeeRecipient();
