@@ -68,6 +68,11 @@ interface ISyndicateRegistry {
         address indexed deployerAddress, address indexed syndicateToken, address indexed owner, uint256 azimuthPoint
     );
 
+    // TODO add Natspec
+    event SyndicateDissolved(
+        address indexed deployerAddress, address indexed syndicateToken, address indexed owner, uint256 azimuthPoint
+    );
+
     /// @notice emitted when a syndicate token owner is successfully updated
     /// @dev The owner address emitted here MUST be confirmed to be a valid TBA for the syndicate token's azimuth point
     /// @param deployerAddress The address of the deployer associated with the updated syndicate token
@@ -135,6 +140,9 @@ interface ISyndicateRegistry {
     /// @dev should only be callable by an active Syndicate Deployer, and the syndicate deployer MUST implement the check to ensure only a valid TBA may register a syndicate and create a mapping(uint256 => Syndicate) in the process.
     /// @param syndicate See {Syndicate} for struct documentation
     function registerSyndicate(Syndicate calldata syndicate) external returns (bool success);
+
+    // TODO add natspec
+    function dissolveSyndicate(Syndicate calldata syndicate) external returns (bool success);
 
     /// @notice Called by an active syndicate deployer to update the owner of a Syndicate token contract
     /// @dev should only be callable by an active Syndicate Deployer, and the syndicate deployer MUST implement the check to ensure only a valid TBA may be made the owner of a given syndicate, updating the mapping(uint256 => Syndicate) in the process.

@@ -36,7 +36,7 @@ contract SyndicateDeployerV1 is ISyndicateDeployerV1 {
     // Modifiers
 
     modifier onlyOwner() {
-        require(msg.sender == i_registry.getOwner(), "Unauthorized: Not owner");
+        require(msg.sender == i_registry.getOwner(), "Unauthorized: Only registry owner");
         _;
     }
 
@@ -55,10 +55,7 @@ contract SyndicateDeployerV1 is ISyndicateDeployerV1 {
     }
 
     modifier onlySyndicate() {
-        require(
-            _deployedSyndicates[msg.sender],
-            "Unauthorized: only syndicates launched from this deployer can call this function"
-        );
+        require(_deployedSyndicates[msg.sender], "Unauthorized: Only syndicates launched from this deployer");
         _;
     }
 
@@ -122,6 +119,7 @@ contract SyndicateDeployerV1 is ISyndicateDeployerV1 {
 
     /// @inheritdoc ISyndicateDeployerV1
     function changeFee(uint256 fee) external onlyOwner {
+        require(fee <= 10000, "Fee must not exceed 100%");
         return _changeFee(fee);
     }
 
@@ -143,6 +141,7 @@ contract SyndicateDeployerV1 is ISyndicateDeployerV1 {
     function dissolveSyndicateInRegistry(uint256 azimuthPoint) external onlySyndicate returns (bool success) {
         return _dissolveSyndicateInRegistry(azimuthPoint);
     }
+
     // @inheritdoc ISyndicateDeployerV1
 
     function getRegistry() external view returns (address syndicateRegistry) {
@@ -252,7 +251,7 @@ contract SyndicateDeployerV1 is ISyndicateDeployerV1 {
 
         _deployedSyndicates[msg.sender] = false;
 
-        i_registry.registerSyndicate(syndicate);
+        i_registry.dissolveSyndicate(syndicate);
         success = true;
         // TODO Add Event
         return success;

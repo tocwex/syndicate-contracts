@@ -35,6 +35,8 @@ contract SyndicateEcosystemTest is Test {
     address public bob;
     address public syndicateOwner;
 
+    uint256 public constant DEFAULT_MINT = 1000000000000000000000000; // 1M with 18 decimals
+    uint256 public constant DEFAULT_MAXSUPPLY = 21000000000000000000000000; // 21M with 18 decimals
     uint256 public constant FEE = 500; // in basis points (500 = 5%)
     bytes32 public constant SALT = bytes32(0);
     address public constant NULL_IMPLEMENTATION = address(0);
@@ -51,9 +53,7 @@ contract SyndicateEcosystemTest is Test {
 
         tbaRegistry = IERC6551Registry(vm.envAddress("SEPOLIA_TBA_REGISTRY"));
         azimuthContract = IERC721(vm.envAddress("SEPOLIA_AZIMUTH_CONTRACT"));
-        tbaImplementation = IERC6551Account(
-            payable(vm.envAddress("SEPOLIA_TBA_IMPLEMENTATION"))
-        );
+        tbaImplementation = IERC6551Account(payable(vm.envAddress("SEPOLIA_TBA_IMPLEMENTATION")));
 
         syndicateOwner = vm.envAddress("SEPOLIA_PUBLIC_KEY_0");
 
@@ -61,24 +61,14 @@ contract SyndicateEcosystemTest is Test {
         registry = new SyndicateRegistry();
         registryAddress = address(registry);
 
-        deployerV1 = new SyndicateDeployerV1(
-            address(registry),
-            address(azimuthContract),
-            FEE
-        );
+        deployerV1 = new SyndicateDeployerV1(address(registry), address(azimuthContract), FEE);
         deployerAddress = address(deployerV1);
 
         vm.stopPrank();
 
         // verify fork is working
-        assertTrue(
-            address(tbaRegistry).code.length > 0,
-            "TBA Registry not deployed"
-        );
-        assertTrue(
-            address(azimuthContract).code.length > 0,
-            "Azimuth not deployed"
-        );
+        assertTrue(address(tbaRegistry).code.length > 0, "TBA Registry not deployed");
+        assertTrue(address(azimuthContract).code.length > 0, "Azimuth not deployed");
     }
 
     // Helper functions
@@ -96,26 +86,15 @@ contract SyndicateEcosystemTest is Test {
     }
 
     //// launch a syndicate token
-    function _launchSyndicateToken() public {
+
+    function _launchSyndicateToken() public returns (address) {
         // vm.prank(syndicateOwner);
-        address tbaAddressForSamzod = _getTbaAddress(
-            address(tbaImplementation),
-            1024
-        );
+        address tbaAddressForSamzod = _getTbaAddress(address(tbaImplementation), 1024);
         vm.prank(tbaAddressForSamzod);
         address syndicateTokenV1 = deployerV1.deploySyndicate(
-            address(tbaImplementation),
-            SALT,
-            1000000000000000000000000,
-            21000000000000000000000000,
-            1024,
-            "~samzod Test Syndicate",
-            "~SAMZOD"
+            address(tbaImplementation), SALT, DEFAULT_MINT, DEFAULT_MAXSUPPLY, 1024, "~samzod Test Syndicate", "~SAMZOD"
         );
-        console2.log(
-            "Syndicate Contract Launched at: ",
-            address(syndicateTokenV1)
-        );
+        console2.log("Syndicate Contract Launched at: ", address(syndicateTokenV1));
         launchedSyndicate = SyndicateTokenV1(payable(syndicateTokenV1));
         console2.log("syndicateOwner: ", launchedSyndicate.getOwner());
         console2.log("initialSupply: ", launchedSyndicate.totalSupply());
@@ -124,128 +103,77 @@ contract SyndicateEcosystemTest is Test {
         console2.log("name: ", launchedSyndicate.name());
         console2.log("symbol: ", launchedSyndicate.symbol());
 
-        assertTrue(
-            address(syndicateTokenV1).code.length > 0,
-            "Syndicate Token not deployed"
-        );
+        assertTrue(address(syndicateTokenV1).code.length > 0, "Syndicate Token not deployed");
+
+        return address(launchedSyndicate);
     }
 
     //// get TBA address
-    function _getTbaAddress(
-        address implementation,
-        uint256 tokenId
-    ) internal view returns (address) {
-        return
-            tbaRegistry.account(
-                implementation,
-                SALT,
-                block.chainid,
-                address(azimuthContract),
-                tokenId
-            );
+    function _getTbaAddress(address implementation, uint256 tokenId) internal view returns (address) {
+        return tbaRegistry.account(implementation, SALT, block.chainid, address(azimuthContract), tokenId);
     }
 
     // Core Tests
     //// Registry Tests
     function test_InitialDeploymentOwnership() public view {
-        assertEq(
-            owner,
-            registry.getOwner(),
-            "Owner should be the deployment address"
-        );
-        assertEq(
-            registry.getOwner(),
-            deployerV1.getOwner(),
-            "Owner should be the registry contract owner"
-        );
+        assertEq(owner, registry.getOwner(), "Owner should be the deployment address");
+        assertEq(registry.getOwner(), deployerV1.getOwner(), "Owner should be the registry contract owner");
     }
 
     function test_ProposeNewRegistryOwnerByOwner() public {
         vm.prank(owner);
         registry.proposeNewOwner(bob);
-        assertEq(
-            bob,
-            registry.getPendingOwner(),
-            "Pending owner should be proposed owner"
-        );
+        assertEq(bob, registry.getPendingOwner(), "Pending owner should be proposed owner");
     }
 
     function test_AcceptRegistryOwnershipByPendingOwner() public {
         vm.prank(owner);
         registry.proposeNewOwner(bob);
-        assertEq(
-            bob,
-            registry.getPendingOwner(),
-            "Pending owner should be proposed owner"
-        );
+        assertEq(bob, registry.getPendingOwner(), "Pending owner should be proposed owner");
         vm.prank(bob);
         registry.acceptOwnership();
-        assertEq(
-            bob,
-            registry.getOwner(),
-            "Previously pending owner should be owner"
-        );
+        assertEq(bob, registry.getOwner(), "Previously pending owner should be owner");
     }
 
-    function test_rejectRegistryOwnershipByPendingOwner() public {
+    function test_RejectRegistryOwnershipByPendingOwner() public {
         vm.prank(owner);
         registry.proposeNewOwner(bob);
         vm.prank(bob);
         registry.rejectOwnership();
-        assertEq(
-            owner,
-            registry.getOwner(),
-            "Old owner should still be the owner"
-        );
+        assertEq(owner, registry.getOwner(), "Old owner should still be the owner");
     }
 
-    function test_nullifyRegistryOwnershipProposalByOwner() public {
+    function test_NullifyRegistryOwnershipProposalByOwner() public {
         vm.startPrank(owner);
         registry.proposeNewOwner(bob);
         registry.nullifyProposal();
-        assertEq(
-            owner,
-            registry.getOwner(),
-            "Old Owner should still be the owner"
-        );
-        assertEq(
-            address(0),
-            registry.getPendingOwner(),
-            "Pending owner should be reset to the null address"
-        );
+        assertEq(owner, registry.getOwner(), "Old Owner should still be the owner");
+        assertEq(address(0), registry.getPendingOwner(), "Pending owner should be reset to the null address");
     }
 
-    function test_nullifyRegistryOwnershipProposalByNotOwner() public {
+    function test_RevertOnNullifyRegistryOwnershipProposalByNotOwner() public {
         vm.prank(owner);
         registry.proposeNewOwner(bob);
         vm.prank(bob);
-        vm.expectRevert();
+        vm.expectRevert("Unauthorized: Only registry owner");
         registry.nullifyProposal();
     }
 
-    function test_renounceRegistryOwnershipByOwner() public {
+    function test_RenounceRegistryOwnershipByOwner() public {
         vm.prank(owner);
         registry.renounceOwnership();
-        assertEq(
-            address(0),
-            registry.getOwner(),
-            "Owner address should be the null address"
-        );
+        assertEq(address(0), registry.getOwner(), "Owner address should be the null address");
     }
 
-    function test_renounceRegistryOwnershipByNotOwner() public {
+    function test_RevertOnRenounceRegistryOwnershipByNotOwner() public {
         vm.prank(bob);
-        vm.expectRevert();
+        vm.expectRevert("Unauthorized: Only registry owner");
         registry.renounceOwnership();
     }
 
     function test_RegisterNewDeployerByOwner() public {
         vm.expectEmit(true, false, false, true); // index 1 has value, 2 and 3 no value, 4 has data for non-indexed values
-        emit ISyndicateRegistry.DeployerRegistered(
-            address(deployerV1),
-            1,
-            true
-        );
+        emit ISyndicateRegistry.DeployerRegistered(address(deployerV1), 1, true);
 
         vm.prank(owner);
         registry.registerDeployer(
@@ -255,19 +183,13 @@ contract SyndicateEcosystemTest is Test {
                 isActive: true
             })
         );
-        // TODO add more complex version numbering or logic checks?
-        // TODO I think this should actually fail due to the registry version already existing?
-        assertEq(
-            true,
-            registry.isRegisteredDeployer(address(deployerV1)),
-            "Is not registered deployment"
-        );
+        assertEq(true, registry.isRegisteredDeployer(address(deployerV1)), "Is not registered deployment");
         // TODO add expect Emit
     }
 
-    function test_RegisterNewDeployerByNotOwner() public {
+    function test_RevertOnRegisterNewDeployerByNotOwner() public {
         vm.prank(bob);
-        vm.expectRevert();
+        vm.expectRevert("Unauthorized: Only registry owner");
         registry.registerDeployer(
             ISyndicateRegistry.SyndicateDeployerData({
                 deployerAddress: address(deployerV1),
@@ -277,7 +199,6 @@ contract SyndicateEcosystemTest is Test {
         );
     }
 
-    // TODO test_RegisterSecondDeployerByOwner
     function test_RegisterSecondDeployerByOwner() public {
         _registerDeployer();
         address deployerV2 = makeAddr("deployerV2");
@@ -291,11 +212,11 @@ contract SyndicateEcosystemTest is Test {
         );
     }
 
-    function test_RegisterSecondDeployerByNotOwner() public {
+    function test_RevertOnRegisterSecondDeployerByNotOwner() public {
         _registerDeployer();
         address deployerV2 = makeAddr("deployerV2");
         vm.prank(bob);
-        vm.expectRevert();
+        vm.expectRevert("Unauthorized: Only registry owner");
         registry.registerDeployer(
             ISyndicateRegistry.SyndicateDeployerData({
                 deployerAddress: address(deployerV2),
@@ -305,7 +226,7 @@ contract SyndicateEcosystemTest is Test {
         );
     }
 
-    function test_ReRegisterDeployerByOwner() public {
+    function test_RevertOnDuplicateRegisterDeployerByOwner() public {
         _registerDeployer();
         vm.prank(owner);
         vm.expectRevert("Deployer is already registered");
@@ -318,9 +239,7 @@ contract SyndicateEcosystemTest is Test {
         );
     }
 
-    function testFuzz_RegisterNewDeployerByNotOwner(
-        address[] calldata randomCallers
-    ) public {
+    function testFuzz_RevertOnRegisterNewDeployerByNotOwner(address[] calldata randomCallers) public {
         vm.assume(randomCallers.length > 0);
         vm.assume(randomCallers.length <= 256);
         for (uint256 i = 0; i < randomCallers.length; i++) {
@@ -328,7 +247,7 @@ contract SyndicateEcosystemTest is Test {
                 continue;
             }
             vm.prank(randomCallers[i]);
-            vm.expectRevert();
+            vm.expectRevert("Unauthorized: Only registry owner");
             registry.registerDeployer(
                 ISyndicateRegistry.SyndicateDeployerData({
                     deployerAddress: address(deployerV1),
@@ -339,19 +258,16 @@ contract SyndicateEcosystemTest is Test {
         }
     }
 
-    function testFuzz_RegisterSyndicateTokenInRegistryByNonDeployer(
-        address[] calldata randomCallers
-    ) public {
+    function testFuzz_RevertOnRegisterSyndicateTokenInRegistryByNonDeployer(address[] calldata randomCallers) public {
         address tokenOwner = makeAddr("tokenOwner");
         address tokenContract = makeAddr("tokenContract");
-        ISyndicateRegistry.Syndicate memory syndicate = ISyndicateRegistry
-            .Syndicate({
-                syndicateOwner: tokenOwner,
-                syndicateContract: tokenContract,
-                syndicateDeployer: address(deployerV1),
-                syndicateLaunchTime: block.number,
-                azimuthPoint: 1
-            });
+        ISyndicateRegistry.Syndicate memory syndicate = ISyndicateRegistry.Syndicate({
+            syndicateOwner: tokenOwner,
+            syndicateContract: tokenContract,
+            syndicateDeployer: address(deployerV1),
+            syndicateLaunchTime: block.number,
+            azimuthPoint: 1
+        });
         vm.assume(randomCallers.length > 0);
         vm.assume(randomCallers.length <= 256);
         for (uint256 i = 0; i < randomCallers.length; i++) {
@@ -359,15 +275,12 @@ contract SyndicateEcosystemTest is Test {
                 continue;
             }
             vm.prank(randomCallers[i]);
-            vm.expectRevert();
+            vm.expectRevert("Unauthorized: Only registered deployers");
             registry.registerSyndicate(syndicate);
         }
     }
 
-    // TODO testFuzz_UpdateSyndicateTokenOwnerRegistryByNonDeployer
-    function testFuzz_UpdateSyndicateTokenOwnerRegistryByNonDeployer(
-        address[] calldata randomCallers
-    ) public {
+    function testFuzz_RevertOnUpdateSyndicateTokenOwnerRegistryByNonDeployer(address[] calldata randomCallers) public {
         address newTokenOwner = makeAddr("newTokenOwner");
         address tokenContract = makeAddr("tokenContract");
         vm.assume(randomCallers.length > 0);
@@ -377,15 +290,39 @@ contract SyndicateEcosystemTest is Test {
                 continue;
             }
             vm.prank(randomCallers[i]);
-            vm.expectRevert();
-            registry.updateSyndicateOwnerRegistration(
-                tokenContract,
-                newTokenOwner
-            );
+            vm.expectRevert("Unauthorized: Only registered deployers");
+            registry.updateSyndicateOwnerRegistration(tokenContract, newTokenOwner);
         }
     }
 
-    // TODO testFail_UpdateSyndicateTokenOwnerRegistryByInactiveDeployer
+    function test_RevertOnRegisterNewSyndicateByInactiveDeployer() public {
+        _registerDeployer();
+        vm.prank(owner);
+        registry.deactivateDeployer(
+            ISyndicateRegistry.SyndicateDeployerData({
+                deployerAddress: address(deployerV1),
+                deployerVersion: 1,
+                isActive: true
+            })
+        );
+        assertEq(registry.isActiveDeployer(address(deployerV1)), false, "Deployer should be inactive at this stage");
+
+        address tokenOwner = makeAddr("tokenOwner");
+        address tokenContract = makeAddr("tokenContract");
+        ISyndicateRegistry.Syndicate memory syndicate = ISyndicateRegistry.Syndicate({
+            syndicateOwner: tokenOwner,
+            syndicateContract: tokenContract,
+            syndicateDeployer: address(deployerV1),
+            syndicateLaunchTime: block.number,
+            azimuthPoint: 1
+        });
+
+        vm.prank(address(deployerV1));
+        vm.expectRevert("Unauthorized: Only active deployers");
+        registry.registerSyndicate(syndicate);
+    }
+
+    // TODO test_UpdateSyndicateTokenOwnerRegistryByInactiveDeployer
     // TK Should Token Ownership be updatable by an inactive deployer? Methinks yes.
 
     //// Deployer Tests
@@ -399,15 +336,9 @@ contract SyndicateEcosystemTest is Test {
             })
         );
 
-        ISyndicateRegistry.SyndicateDeployerData
-            memory dataBeforeDeactivation = registry.getDeployerData(
-                address(deployerV1)
-            );
-        assertEq(
-            dataBeforeDeactivation.isActive,
-            true,
-            "Deployer should be active at this stage"
-        );
+        ISyndicateRegistry.SyndicateDeployerData memory dataBeforeDeactivation =
+            registry.getDeployerData(address(deployerV1));
+        assertEq(dataBeforeDeactivation.isActive, true, "Deployer should be active at this stage");
         assertEq(
             dataBeforeDeactivation.isActive,
             registry.isActiveDeployer(address(deployerV1)),
@@ -425,8 +356,7 @@ contract SyndicateEcosystemTest is Test {
                 isActive: true
             })
         );
-        ISyndicateRegistry.SyndicateDeployerData memory currentData = registry
-            .getDeployerData(address(deployerV1));
+        ISyndicateRegistry.SyndicateDeployerData memory currentData = registry.getDeployerData(address(deployerV1));
 
         assertEq(currentData.isActive, false, "Deployer should be deactivated");
         assertEq(
@@ -436,7 +366,7 @@ contract SyndicateEcosystemTest is Test {
         );
     }
 
-    function testFail_DeactivateRegisteredDeployerByNotOwner() public {
+    function test_RevertOnDeactivateRegisteredDeployerByNotOwner() public {
         vm.prank(owner);
         registry.registerDeployer(
             ISyndicateRegistry.SyndicateDeployerData({
@@ -446,17 +376,12 @@ contract SyndicateEcosystemTest is Test {
             })
         );
 
-        ISyndicateRegistry.SyndicateDeployerData
-            memory dataBeforeDeactivation = registry.getDeployerData(
-                address(deployerV1)
-            );
-        assertEq(
-            dataBeforeDeactivation.isActive,
-            true,
-            "Deployer should be active at this stage"
-        );
+        ISyndicateRegistry.SyndicateDeployerData memory dataBeforeDeactivation =
+            registry.getDeployerData(address(deployerV1));
+        assertEq(dataBeforeDeactivation.isActive, true, "Deployer should be active at this stage");
 
         vm.prank(bob);
+        vm.expectRevert("Unauthorized: Only registry owner");
         registry.deactivateDeployer(
             ISyndicateRegistry.SyndicateDeployerData({
                 deployerAddress: address(deployerV1),
@@ -477,15 +402,9 @@ contract SyndicateEcosystemTest is Test {
             })
         );
 
-        ISyndicateRegistry.SyndicateDeployerData
-            memory dataBeforeDeactivation = registry.getDeployerData(
-                address(deployerV1)
-            );
-        assertEq(
-            dataBeforeDeactivation.isActive,
-            true,
-            "Deployer should be active at this stage"
-        );
+        ISyndicateRegistry.SyndicateDeployerData memory dataBeforeDeactivation =
+            registry.getDeployerData(address(deployerV1));
+        assertEq(dataBeforeDeactivation.isActive, true, "Deployer should be active at this stage");
 
         vm.expectEmit(true, false, false, true); // index 1 has value, 2 and 3 no value, 4 has data for non-indexed values
         emit ISyndicateRegistry.DeployerDeactivated(address(deployerV1), false);
@@ -499,14 +418,9 @@ contract SyndicateEcosystemTest is Test {
                 isActive: true
             })
         );
-        ISyndicateRegistry.SyndicateDeployerData memory currentData = registry
-            .getDeployerData(address(deployerV1));
+        ISyndicateRegistry.SyndicateDeployerData memory currentData = registry.getDeployerData(address(deployerV1));
 
-        assertEq(
-            currentData.isActive,
-            false,
-            "Deployer should be deactivated at this stage"
-        );
+        assertEq(currentData.isActive, false, "Deployer should be deactivated at this stage");
 
         // Reactivate the Deployer
         vm.expectEmit(true, false, false, true); // index 1 has value, 2 and 3 no value, 4 has data for non-indexed values
@@ -521,17 +435,17 @@ contract SyndicateEcosystemTest is Test {
             })
         );
 
-        ISyndicateRegistry.SyndicateDeployerData memory newData = registry
-            .getDeployerData(address(deployerV1));
+        ISyndicateRegistry.SyndicateDeployerData memory newData = registry.getDeployerData(address(deployerV1));
 
+        assertEq(newData.isActive, true, "Deployer should be reactivated at this stage");
         assertEq(
             newData.isActive,
-            true,
-            "Deployer should be reactivated at this stage"
+            registry.isActiveDeployer(address(deployerV1)),
+            "Deployer array and mapping data should both be active at this stage"
         );
     }
 
-    function testFail_ReactivateRegisteredDeployerByNotOwner() public {
+    function test_RevertOnReactivateRegisteredDeployerByNotOwner() public {
         // Register the deployer
         vm.prank(owner);
         registry.registerDeployer(
@@ -542,15 +456,9 @@ contract SyndicateEcosystemTest is Test {
             })
         );
 
-        ISyndicateRegistry.SyndicateDeployerData
-            memory dataBeforeDeactivation = registry.getDeployerData(
-                address(deployerV1)
-            );
-        assertEq(
-            dataBeforeDeactivation.isActive,
-            true,
-            "Deployer should be active at this stage"
-        );
+        ISyndicateRegistry.SyndicateDeployerData memory dataBeforeDeactivation =
+            registry.getDeployerData(address(deployerV1));
+        assertEq(dataBeforeDeactivation.isActive, true, "Deployer should be active at this stage");
 
         vm.expectEmit(true, false, false, true); // index 1 has value, 2 and 3 no value, 4 has data for non-indexed values
         emit ISyndicateRegistry.DeployerDeactivated(address(deployerV1), false);
@@ -564,17 +472,13 @@ contract SyndicateEcosystemTest is Test {
                 isActive: true
             })
         );
-        ISyndicateRegistry.SyndicateDeployerData memory currentData = registry
-            .getDeployerData(address(deployerV1));
+        ISyndicateRegistry.SyndicateDeployerData memory currentData = registry.getDeployerData(address(deployerV1));
 
-        assertEq(
-            currentData.isActive,
-            false,
-            "Deployer should be deactivated at this stage"
-        );
+        assertEq(currentData.isActive, false, "Deployer should be deactivated at this stage");
 
         // Attempt to reactivate the Deployer as non-owner
         vm.prank(bob);
+        vm.expectRevert("Unauthorized: Only registry owner");
         registry.reactivateDeployer(
             ISyndicateRegistry.SyndicateDeployerData({
                 deployerAddress: address(deployerV1),
@@ -587,24 +491,153 @@ contract SyndicateEcosystemTest is Test {
     function test_LaunchAndRegisterNewSyndicate() public {
         _registerDeployer();
         _launchSyndicateToken();
-        address launchedTokenOwner = _getTbaAddress(
-            address(tbaImplementation),
-            1024
-        );
+        address launchedTokenOwner = _getTbaAddress(address(tbaImplementation), 1024);
+        assertEq(launchedSyndicate.getOwner(), launchedTokenOwner, "Syndicate owner mismatch");
+    }
+
+    function test_ChangeSyndicateDeployerFeeRecipientByRegistryOwner() public {
+        _registerDeployer();
+        address feeRecipient = deployerV1.getFeeRecipient();
+        console2.log("Fee recipient upon deployment is: ", feeRecipient);
+        console2.log("Registry owner is: ", registry.getOwner());
+        address newRecipient = makeAddr("newRecipient");
+        vm.prank(owner);
+        deployerV1.changeFeeRecipient(newRecipient);
+        console2.log("New recipient is: ", deployerV1.getFeeRecipient());
         assertEq(
-            launchedSyndicate.getOwner(),
-            launchedTokenOwner,
-            "Syndicate owner mismatch"
+            newRecipient,
+            deployerV1.getFeeRecipient(),
+            "New recipient should be updated in the deployerV1 contract state"
         );
     }
 
-    // TODO test_ChangeSyndicateDeployerFeeRecipientByRegistryOwner
-    // TODO testFail_ChangeSyndicateDeployerFeeRecipientByNotOwner
-    // TODO test_ChangeFeeAmountAndRecieveExpectedAmountFromNewMint
-    // TODO test_ChangeRecipientAndConfirmAllProtocolFeesGoToNewRecipient
-    // TODO test_AddPermissionedContractMappingByOwner
-    // TODO testFail_AddPermissionedContractMappingByNotOwner
-    // TODO testFuzz_DissolveSyndicateViaDeployerByNotSyndicateTokenContract
+    function test_PRevertOnChangeSyndicateDeployerFeeRecipientByRegistryNotOwner() public {
+        _registerDeployer();
+        address feeRecipient = deployerV1.getFeeRecipient();
+        console2.log("Fee recipient upon deployment is: ", feeRecipient);
+        console2.log("Registry owner is: ", registry.getOwner());
+        address newRecipient = makeAddr("newRecipient");
+        vm.prank(bob);
+        vm.expectRevert("Unauthorized: Only registry owner");
+        deployerV1.changeFeeRecipient(newRecipient);
+        console2.log("Fee recipient remains: ", deployerV1.getFeeRecipient());
+        assertEq(
+            owner,
+            deployerV1.getFeeRecipient(),
+            "Recipient should remain the original owner in the deployerV1 contract state"
+        );
+    }
+
+    function test_ChangeFeeAmountAndRecieveExpectedAmountFromNewMint() public {
+        _registerDeployer();
+        vm.prank(owner);
+        deployerV1.changeFee(300);
+        uint256 newFee = deployerV1.getFee();
+        console2.log("The current fee in basis points is: ", newFee);
+
+        address samzodSyndicate = _launchSyndicateToken();
+        launchedSyndicate = SyndicateTokenV1(payable(samzodSyndicate));
+
+        address tbaAddressForSamzod = _getTbaAddress(address(tbaImplementation), 1024);
+        uint256 samzodBalance = launchedSyndicate.balanceOf(tbaAddressForSamzod);
+        console2.log("Samzod's initial balance is: ", samzodBalance);
+
+        uint256 feeRecipientBalance = launchedSyndicate.balanceOf(owner);
+        console2.log("Owner / initial fee recipient balance is: ", feeRecipientBalance);
+        assertEq(feeRecipientBalance, (DEFAULT_MINT * newFee) / 10000, "Expected fee mismatch");
+        assertEq(
+            samzodBalance, DEFAULT_MINT - ((DEFAULT_MINT * newFee) / 10000), "Expected initial owner balance mismatch"
+        );
+    }
+
+    function test_ChangeFeeRecipientAndRecieveExpectedAmountFromNewMint() public {
+        _registerDeployer();
+        vm.prank(owner);
+        deployerV1.changeFeeRecipient(bob);
+        uint256 protocolFee = deployerV1.getFee();
+        console2.log("The current fee in basis points is: ", protocolFee);
+
+        address samzodSyndicate = _launchSyndicateToken();
+        launchedSyndicate = SyndicateTokenV1(payable(samzodSyndicate));
+
+        address tbaAddressForSamzod = _getTbaAddress(address(tbaImplementation), 1024);
+        uint256 samzodBalance = launchedSyndicate.balanceOf(tbaAddressForSamzod);
+        console2.log("Samzod's initial balance is: ", samzodBalance);
+
+        uint256 feeRecipientBalance = launchedSyndicate.balanceOf(bob);
+
+        console2.log("Updated fee recipient balance is: ", feeRecipientBalance);
+
+        uint256 oldOwnerBalance = launchedSyndicate.balanceOf(owner);
+        console2.log("Registry owner / old fee recipient balance is: ", oldOwnerBalance);
+
+        assertEq(FEE, protocolFee, "Protocol fee should be unchanged from initialization value");
+        assertEq(feeRecipientBalance, (DEFAULT_MINT * protocolFee) / 10000, "Expected fee mismatch");
+        assertEq(
+            samzodBalance,
+            DEFAULT_MINT - ((DEFAULT_MINT * protocolFee) / 10000),
+            "Expected initial owner balance mismatch"
+        );
+
+        vm.prank(tbaAddressForSamzod);
+        launchedSyndicate.mint(alice, DEFAULT_MINT);
+        uint256 aliceBalance = launchedSyndicate.balanceOf(alice);
+        console2.log("Alice has recieved tokens: ", aliceBalance);
+        assertEq(
+            aliceBalance,
+            DEFAULT_MINT - ((DEFAULT_MINT * protocolFee) / 10000),
+            "Alice recieved unexpected number of tokens"
+        );
+        uint256 secondMintFeeRecipientBalance = launchedSyndicate.balanceOf(bob);
+        uint256 currentTotalSupply = launchedSyndicate.totalSupply();
+        console2.log("Current total supply is: ", currentTotalSupply);
+        assertEq(
+            secondMintFeeRecipientBalance,
+            currentTotalSupply - (aliceBalance + samzodBalance),
+            "Current total supply has a mismatch error"
+        );
+    }
+
+    function test_AddPermissionedContractMappingToDeployerByRegistryOwner() public {
+        _registerDeployer();
+        address permissionedContract = makeAddr("permissionedContract");
+        vm.prank(owner);
+        deployerV1.addPermissionedContract(permissionedContract);
+        // TODO Add expect emit
+        assertEq(
+            deployerV1.checkIfPermissioned(permissionedContract), true, "Contract not successfully added to mapping"
+        );
+    }
+
+    function test_RevertOnAddPermissionedContractMappingToDeployerByNotRegistryOwner() public {
+        _registerDeployer();
+        address permissionedContract = makeAddr("permissionedContract");
+        vm.prank(bob);
+        vm.expectRevert("Unauthorized: Only registry owner");
+        deployerV1.addPermissionedContract(permissionedContract);
+
+        assertEq(deployerV1.checkIfPermissioned(permissionedContract), false, "Contract mysteriously added to mapping");
+    }
+
+    function testFuzz_DissolveSyndicateViaDeployerByNotSyndicateTokenContract(address[] calldata randomCallers)
+        public
+    {
+        _registerDeployer();
+        address samzodSyndicate = _launchSyndicateToken();
+        launchedSyndicate = SyndicateTokenV1(payable(samzodSyndicate));
+
+        vm.assume(randomCallers.length > 0);
+        vm.assume(randomCallers.length <= 256);
+        for (uint256 i = 0; i < randomCallers.length; i++) {
+            if (randomCallers[i] == address(0) || randomCallers[i] == owner) {
+                continue;
+            }
+            vm.prank(randomCallers[i]);
+            vm.expectRevert("Unauthorized: Only syndicates launched from this deployer");
+            deployerV1.dissolveSyndicateInRegistry(1024);
+        }
+    }
+
     // TODO testFuzz_RegisterSyndicateViaDeployerByNotSyndicateTokenContract
 
     //// Syndicate Token Tests
@@ -612,32 +645,13 @@ contract SyndicateEcosystemTest is Test {
         _registerDeployer();
         _launchSyndicateToken();
 
-        address launchedTokenOwner = _getTbaAddress(
-            address(tbaImplementation),
-            1024
-        );
-        address newOwnershipTba = _getTbaAddress(
-            address(NULL_IMPLEMENTATION),
-            1024
-        );
+        address launchedTokenOwner = _getTbaAddress(address(tbaImplementation), 1024);
+        address newOwnershipTba = _getTbaAddress(address(NULL_IMPLEMENTATION), 1024);
 
         vm.prank(address(launchedTokenOwner));
-        launchedSyndicate.updateOwnershipTba(
-            newOwnershipTba,
-            address(NULL_IMPLEMENTATION),
-            SALT
-        );
-        console2.log(
-            "New Owner of ",
-            address(launchedSyndicate),
-            "is: ",
-            launchedSyndicate.getOwner()
-        );
-        assertEq(
-            newOwnershipTba,
-            launchedSyndicate.getOwner(),
-            "Syndicate Token Owner failed to update properly"
-        );
+        launchedSyndicate.updateOwnershipTba(newOwnershipTba, address(NULL_IMPLEMENTATION), SALT);
+        console2.log("New Owner of ", address(launchedSyndicate), "is: ", launchedSyndicate.getOwner());
+        assertEq(newOwnershipTba, launchedSyndicate.getOwner(), "Syndicate Token Owner failed to update properly");
     }
 
     // TODO testFail_UpdateSyndicateOwnershipAddressToInvalidTba
@@ -655,6 +669,24 @@ contract SyndicateEcosystemTest is Test {
     // TODO testFail_MintOverMaxSupplyByOwner
     // TODO test_DissolveSyndicateByOwner
     // TODO testFail_DissolveSyndicateByNotOwner
+
+    function testFuzz_DissolveSyndicateByNotSyndicateOwner(address[] calldata randomCallers) public {
+        _registerDeployer();
+        address samzodSyndicate = _launchSyndicateToken();
+        launchedSyndicate = SyndicateTokenV1(payable(samzodSyndicate));
+
+        vm.assume(randomCallers.length > 0);
+        vm.assume(randomCallers.length <= 256);
+        for (uint256 i = 0; i < randomCallers.length; i++) {
+            if (randomCallers[i] == address(0) || randomCallers[i] == owner) {
+                continue;
+            }
+            vm.prank(randomCallers[i]);
+            vm.expectRevert("Unauthorized: Only syndicate owner");
+            launchedSyndicate.dissolveSyndicate();
+        }
+    }
+
     // TODO test_NewSyndicateAfterDissolutionByUrbitTba
     // TODO testFail_NewSyndicateAfterDissolutionByNotUrbitTBA
 
