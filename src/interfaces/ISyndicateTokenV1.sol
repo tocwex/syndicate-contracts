@@ -73,7 +73,7 @@ interface ISyndicateTokenV1 {
 
     function getSyndicateStatus() external view returns (bool isCannonical);
 
-    function usesCustomWhitelist() external view returns (bool);
+    function usesDefaultWhitelist() external view returns (bool);
 
     function isWhitelistedContract(address) external view returns (bool);
 
