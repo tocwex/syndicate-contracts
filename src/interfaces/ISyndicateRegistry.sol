@@ -110,6 +110,12 @@ interface ISyndicateRegistry {
     /// @param previousOwner The address that ultimately renounced ownership of the registry
     event OwnershipRenounced(address previousOwner);
 
+    // TODO add natspec
+    event ExternalCallAttempted(address indexed target, bytes data);
+
+    // TODO add natspec
+    event ExternalCallExecuted(address indexed target, bytes data, bool success);
+
     // Errors
     // error Unauthorized();
 
@@ -179,6 +185,9 @@ interface ISyndicateRegistry {
     /// @dev should only be callable by the registry contract owner
     /// @return success Confirmation of renouncing ownership to the null address
     function renounceOwnership() external returns (bool success);
+
+    // TODO add natspec
+    function executeCall(address target, bytes calldata data) external returns (bool success, bytes memory result);
 
     /// @notice Getter fuction for _owner private state variable
     /// @return owner Ownership address of Registry contract which has the rights to add new deployers to the registry

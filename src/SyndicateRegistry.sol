@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: GPLv3
 
 // TODO Implement reentrancy guards
-// TODO Implement function for accepting ENS name
 
 pragma solidity ^0.8.19;
 
@@ -134,6 +133,15 @@ contract SyndicateRegistry is ISyndicateRegistry {
 
     function renounceOwnership() external onlyOwner returns (bool success) {
         return _renounceOwnership();
+    }
+
+    // TODO make nonReentrant
+    function executeCall(address target, bytes calldata data)
+        external
+        onlyOwner
+        returns (bool success, bytes memory result)
+    {
+        return _executeCall(target, data);
     }
 
     function getOwner() external view returns (address owner) {
@@ -413,5 +421,23 @@ contract SyndicateRegistry is ISyndicateRegistry {
         success = true;
         emit OwnershipRenounced(previousOwner);
         return success;
+    }
+
+    function _executeCall(address target, bytes calldata data) internal returns (bool success, bytes memory result) {
+        // Add basic checks
+        require(target != address(0), "Invalid target");
+        require(target != address(this), "Cannot call self");
+
+        // Log attempt
+        emit ExternalCallAttempted(target, data);
+
+        // Make call
+        (success, result) = target.call(data);
+        require(success, "Call failed");
+
+        // Log result
+        emit ExternalCallExecuted(target, data, success);
+
+        return (success, result);
     }
 }
