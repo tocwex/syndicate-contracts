@@ -13,6 +13,9 @@ interface ISyndicateTokenV1 {
     event OwnershipTbaUpdated(address newOwner);
     event SyndicateDissolved(uint256 blockHeight);
     event ProtocolFeeUpdated(uint256 newFee);
+    event TokenMaxSupplySet(uint256 maxSupply);
+    event MintingRightsRenounced(address tokenOwner);
+    event ToggleDefaultWhitelist(address tokenOwner, bool defaultsWhitelisted);
 
     // External functions
     function permissionedMint(address account, uint256 amount) external;
@@ -33,6 +36,8 @@ interface ISyndicateTokenV1 {
         bytes32 salt
     ) external returns (bool);
 
+    function renounceMintingRights() external returns (bool sucess);
+
     function renounceOwnership() external returns (bool);
 
     function dissolveSyndicate() external returns (bool);
@@ -47,6 +52,8 @@ interface ISyndicateTokenV1 {
 
     function reduceFee(uint256 newFee) external returns (bool);
 
+    function setMaxSupply(uint256 setCap) external returns (bool);
+
     // View functions
     function getDeployerAddress() external view returns (address);
 
@@ -59,6 +66,10 @@ interface ISyndicateTokenV1 {
     function getProtocolFee() external view returns (uint256);
 
     function getOwner() external view returns (address);
+
+    function isSupplyCapped() external view returns (bool);
+
+    function isOwnerMintable() external view returns (bool);
 
     function getSyndicateStatus() external view returns (bool isCannonical);
 
