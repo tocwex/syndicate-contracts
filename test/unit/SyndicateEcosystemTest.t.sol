@@ -82,6 +82,10 @@ contract SyndicateEcosystemTest is Test {
                 isActive: true
             })
         );
+
+        // Deactivate beta mode for default test state
+        deployerV1.toggleBetaMode(false);
+
         vm.stopPrank();
     }
 
@@ -639,6 +643,7 @@ contract SyndicateEcosystemTest is Test {
     }
 
     // TODO testFuzz_RegisterSyndicateViaDeployerByNotSyndicateTokenContract
+    // TODO tests for checking whitelist functionality
 
     //// Syndicate Token Tests
     function test_UpdateSyndicateOwnershipAddressToValidTba() public {

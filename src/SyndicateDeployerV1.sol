@@ -26,10 +26,12 @@ contract SyndicateDeployerV1 is ISyndicateDeployerV1 {
     //// Mutables
     address private _feeRecipient;
     uint256 private _fee;
+    bool private _betaMode = true;
 
     // Arrays
 
     // Mappings
+    mapping(uint256 => bool) private _betaWhitelist;
     mapping(address => bool) private _deployedSyndicates;
     mapping(address => bool) private _permissionedContracts;
 
@@ -104,6 +106,9 @@ contract SyndicateDeployerV1 is ISyndicateDeployerV1 {
         onlyValidTba(msg.sender, azimuthPoint, implementation, salt)
         returns (address syndicateToken)
     {
+        if (_betaMode) {
+            require(_betaWhitelist[azimuthPoint], "Unauthorized: Urbit ID not on beta whitelist");
+        }
         return _deploySyndicate(msg.sender, initialSupply, maxSupply, azimuthPoint, _fee, name, symbol);
     }
 
@@ -128,12 +133,26 @@ contract SyndicateDeployerV1 is ISyndicateDeployerV1 {
         return _changeFeeRecipient(newFeeRecipient);
     }
 
-    // TODO Update ISyndicateDeployerV1 Interface
+    function toggleBetaMode(bool betaState) external onlyOwner returns (bool success) {
+        return _toggleBetaMode(betaState);
+    }
+
+    function addWhitelistedPoint(uint256 azimuthPoint) external onlyOwner returns (bool success) {
+        return _addWhitelistedPoint(azimuthPoint);
+    }
+
+    function batchWhitelistPoints(uint256[] calldata azimuthPoint) external onlyOwner returns (bool success) {
+        return _batchWhitelistPoints(azimuthPoint);
+    }
+
+    function removeWhitelistedPoint(uint256 azimuthPoint) external onlyOwner returns (bool success) {
+        return _removeWhitelistedPoint(azimuthPoint);
+    }
+
     function addPermissionedContract(address contractAddress) external onlyOwner returns (bool success) {
         return _addPermissionedContract(contractAddress);
     }
 
-    // TODO Update ISyndicateDeployerV1 Interface
     function removePermissionedContract(address contractAddress) external onlyOwner returns (bool success) {
         return _removePermissionedContract(contractAddress);
     }
@@ -224,7 +243,48 @@ contract SyndicateDeployerV1 is ISyndicateDeployerV1 {
     }
 
     // TODO add natspec
+    function _toggleBetaMode(bool betaState) internal returns (bool success) {
+        _betaMode = betaState;
+        success = true;
+        emit BetaModeChanged({betaMode: betaState});
+
+        return success;
+    }
+
+    // TODO add natspec
+    function _addWhitelistedPoint(uint256 azimuthPoint) internal returns (bool success) {
+        _betaWhitelist[azimuthPoint] = true;
+        success = true;
+
+        emit AzimuthPointAddedToWhitelist({azimuthPoint: azimuthPoint});
+
+        return success;
+    }
+
+    // TODO add natspec
+    function _batchWhitelistPoints(uint256[] calldata azimuthPoint) internal returns (bool success) {
+        require(azimuthPoint.length > 0, "Empty array");
+        for (uint256 i = 0; i < azimuthPoint.length; i++) {
+            _betaWhitelist[azimuthPoint[i]] = true;
+            emit AzimuthPointAddedToWhitelist({azimuthPoint: azimuthPoint[i]});
+        }
+        success = true;
+
+        return success;
+    }
+
+    // TODO add natspec
+    function _removeWhitelistedPoint(uint256 azimuthPoint) internal returns (bool success) {
+        _betaWhitelist[azimuthPoint] = false;
+        success = true;
+
+        emit AzimuthPointRemovedFromWhitelist({azimuthPoint: azimuthPoint});
+
+        return success;
+    }
+
     // TODO add events for permissioned contracts
+
     function _addPermissionedContract(address contractAddress) internal returns (bool success) {
         _permissionedContracts[contractAddress] = true;
         success = true;

@@ -13,11 +13,7 @@ interface ISyndicateDeployerV1 {
     /// @param registryAddress The immutable registry address to which the deployer will be added
     /// @param fee The protocol fee rate applied to token contracts launched from this deployer
     /// @param feeRecipient The address to recieve protocol fees from deployed token contracts
-    event DeployerV1Deployed(
-        address indexed registryAddress,
-        uint256 fee,
-        address feeRecipient
-    );
+    event DeployerV1Deployed(address indexed registryAddress, uint256 fee, address feeRecipient);
 
     /// @notice emitted when a new token is deployed
     /// @dev
@@ -46,6 +42,15 @@ interface ISyndicateDeployerV1 {
 
     // TODO add natspec
     event PermissionedContractRemoved(address permissionedContract);
+
+    // TODO add natspec
+    event AzimuthPointAddedToWhitelist(uint256 azimuthPoint);
+
+    // TODO add natspec
+    event AzimuthPointRemovedFromWhitelist(uint256 azimuthPoint);
+
+    // TODO add natspec
+    event BetaModeChanged(bool betaMode);
 
     // Errors
     // TODO Add natspec
@@ -81,12 +86,9 @@ interface ISyndicateDeployerV1 {
     /// @param implementation The address of a IERC6551Account compliant contract
     /// @param salt The bytes32 value of some salt, by default `bytes32(0)` should be used
     /// @return success The boolean which should indicate that the input parameters were all validated, the registry was updated, and the syndcate contract owner was updated
-    function registerTokenOwnerChange(
-        address newOwner,
-        uint256 azimuthPoint,
-        address implementation,
-        bytes32 salt
-    ) external returns (bool success);
+    function registerTokenOwnerChange(address newOwner, uint256 azimuthPoint, address implementation, bytes32 salt)
+        external
+        returns (bool success);
 
     /// @notice Called to change protocol fee
     /// @dev function should be restricted to onlyOwner
@@ -97,24 +99,28 @@ interface ISyndicateDeployerV1 {
     /// @dev
     /// @param newFeeRecipient The address to recieve token distribution fee
     /// @return success The confirmation of the address being updated
-    function changeFeeRecipient(
-        address newFeeRecipient
-    ) external returns (bool success);
+    function changeFeeRecipient(address newFeeRecipient) external returns (bool success);
 
     // TODO add natspec
-    function addPermissionedContract(
-        address contractAddress
-    ) external returns (bool success);
+    function toggleBetaMode(bool betaState) external returns (bool success);
 
     // TODO add natspec
-    function removePermissionedContract(
-        address contractAddress
-    ) external returns (bool success);
+    function addWhitelistedPoint(uint256 azimuthPoint) external returns (bool success);
 
     // TODO add natspec
-    function dissolveSyndicateInRegistry(
-        uint256 azimuthPoint
-    ) external returns (bool success);
+    function batchWhitelistPoints(uint256[] calldata azimuthPoint) external returns (bool success);
+
+    // TODO add natspec
+    function removeWhitelistedPoint(uint256 azimuthPoint) external returns (bool success);
+
+    // TODO add natspec
+    function addPermissionedContract(address contractAddress) external returns (bool success);
+
+    // TODO add natspec
+    function removePermissionedContract(address contractAddress) external returns (bool success);
+
+    // TODO add natspec
+    function dissolveSyndicateInRegistry(uint256 azimuthPoint) external returns (bool success);
 
     /// @notice called to get address of registry contract
     /// @dev
@@ -142,7 +148,5 @@ interface ISyndicateDeployerV1 {
     function getFee() external view returns (uint256 fee);
 
     // TODO add natspec
-    function checkIfPermissioned(
-        address contractAddress
-    ) external view returns (bool isPermissioned);
+    function checkIfPermissioned(address contractAddress) external view returns (bool isPermissioned);
 }
