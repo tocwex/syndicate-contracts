@@ -5,7 +5,7 @@ pragma solidity ^0.8.19;
 // TODO natspec for internal functions
 // TODO implement reentrancy guards
 // TODO implement function for accepting ENS name
-
+// TODO block max fee from being >100%
 import {SyndicateRegistry} from "./SyndicateRegistry.sol";
 import {ISyndicateRegistry} from "./interfaces/ISyndicateRegistry.sol";
 import {SyndicateTokenV1} from "./SyndicateTokenV1.sol";
