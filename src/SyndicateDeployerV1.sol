@@ -271,6 +271,10 @@ contract SyndicateDeployerV1 is ISyndicateDeployerV1 {
         return _permissionedContracts[contractAddress];
     }
 
+    function inBetaMode() external view returns (bool betaState) {
+        return _betaMode;
+    }
+
     //// Internal Functions
     // TODO add natspec
     function _deploySyndicate(
