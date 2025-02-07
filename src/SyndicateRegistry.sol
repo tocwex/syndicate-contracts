@@ -28,17 +28,26 @@ contract SyndicateRegistry is ISyndicateRegistry {
     }
 
     modifier onlyPendingOwner() {
-        require(msg.sender == _pendingOwner, "Unauthorized: Only Pending Owner");
+        require(
+            msg.sender == _pendingOwner,
+            "Unauthorized: Only Pending Owner"
+        );
         _;
     }
 
     modifier onlyValidDeployer() {
-        require(_isRegisteredDeployer[msg.sender], "Unauthorized: Only registered deployers");
+        require(
+            _isRegisteredDeployer[msg.sender],
+            "Unauthorized: Only registered deployers"
+        );
         _;
     }
 
     modifier onlyActiveDeployer() {
-        require(_isActiveDeployer[msg.sender], "Unauthorized: Only active deployers");
+        require(
+            _isActiveDeployer[msg.sender],
+            "Unauthorized: Only active deployers"
+        );
         _;
     }
 
@@ -62,41 +71,38 @@ contract SyndicateRegistry is ISyndicateRegistry {
     }
 
     //// External Functions
-    function registerDeployer(SyndicateDeployerData calldata syndicateDeployerData)
-        external
-        onlyOwner
-        returns (bool success)
-    {
+    function registerDeployer(
+        SyndicateDeployerData calldata syndicateDeployerData
+    ) external onlyOwner returns (bool success) {
         return _registerDeployer(syndicateDeployerData);
     }
 
-    function deactivateDeployer(SyndicateDeployerData calldata syndicateDeployerData)
-        external
-        onlyOwner
-        returns (bool success)
-    {
+    function deactivateDeployer(
+        SyndicateDeployerData calldata syndicateDeployerData
+    ) external onlyOwner returns (bool success) {
         return _deactivateDeployer(syndicateDeployerData);
     }
 
-    function reactivateDeployer(SyndicateDeployerData calldata syndicateDeployerData)
-        external
-        onlyOwner
-        returns (bool success)
-    {
+    function reactivateDeployer(
+        SyndicateDeployerData calldata syndicateDeployerData
+    ) external onlyOwner returns (bool success) {
         return _reactivateDeployer(syndicateDeployerData);
     }
 
-    function registerSyndicate(Syndicate calldata syndicate)
-        external
-        onlyValidDeployer
-        onlyActiveDeployer
-        returns (bool success)
-    {
+    function registerSyndicate(
+        Syndicate calldata syndicate
+    ) external onlyValidDeployer onlyActiveDeployer returns (bool success) {
+        require(
+            _syndicate[syndicate.azimuthPoint].syndicateContract == address(0),
+            "Azimuth point already has active syndicate"
+        );
         success = _registerSyndicate(syndicate);
         return success;
     }
 
-    function dissolveSyndicate(Syndicate calldata syndicate) external onlyValidDeployer returns (bool success) {
+    function dissolveSyndicate(
+        Syndicate calldata syndicate
+    ) external onlyValidDeployer returns (bool success) {
         require(
             syndicate.syndicateContract == address(0),
             "Dissolving a syndicate must set the token address to the null address"
@@ -107,23 +113,32 @@ contract SyndicateRegistry is ISyndicateRegistry {
         return success;
     }
 
-    function updateSyndicateOwnerRegistration(address syndicateToken, address newOwner)
-        external
-        onlyValidDeployer
-        returns (bool success)
-    {
+    function updateSyndicateOwnerRegistration(
+        address syndicateToken,
+        address newOwner
+    ) external onlyValidDeployer returns (bool success) {
         return _updateSyndicateOwnerRegistration(syndicateToken, newOwner);
     }
 
-    function proposeNewOwner(address proposedOwner) external onlyOwner returns (bool success) {
+    function proposeNewOwner(
+        address proposedOwner
+    ) external onlyOwner returns (bool success) {
         return _proposeNewOwner(proposedOwner);
     }
 
-    function acceptOwnership() external onlyPendingOwner returns (bool success) {
+    function acceptOwnership()
+        external
+        onlyPendingOwner
+        returns (bool success)
+    {
         return _acceptOwnership();
     }
 
-    function rejectOwnership() external onlyPendingOwner returns (bool success) {
+    function rejectOwnership()
+        external
+        onlyPendingOwner
+        returns (bool success)
+    {
         return _rejectOwnership();
     }
 
@@ -136,11 +151,10 @@ contract SyndicateRegistry is ISyndicateRegistry {
     }
 
     // TODO make nonReentrant
-    function executeCall(address target, bytes calldata data)
-        external
-        onlyOwner
-        returns (bool success, bytes memory result)
-    {
+    function executeCall(
+        address target,
+        bytes calldata data
+    ) external onlyOwner returns (bool success, bytes memory result) {
         return _executeCall(target, data);
     }
 
@@ -152,19 +166,29 @@ contract SyndicateRegistry is ISyndicateRegistry {
         return _pendingOwner;
     }
 
-    function isRegisteredDeployer(address checkAddress) external view returns (bool isRegistered) {
+    function isRegisteredDeployer(
+        address checkAddress
+    ) external view returns (bool isRegistered) {
         return _isRegisteredDeployer[checkAddress];
     }
 
-    function isActiveDeployer(address checkAddress) external view returns (bool isActive) {
+    function isActiveDeployer(
+        address checkAddress
+    ) external view returns (bool isActive) {
         return _isActiveDeployer[checkAddress];
     }
 
-    function getDeployers() external view returns (address[] memory syndicateDeployers) {
+    function getDeployers()
+        external
+        view
+        returns (address[] memory syndicateDeployers)
+    {
         return _syndicateDeployers;
     }
 
-    function getDeployerData(address deployerAddress)
+    function getDeployerData(
+        address deployerAddress
+    )
         external
         view
         returns (SyndicateDeployerData memory syndicateDeployerData)
@@ -172,152 +196,150 @@ contract SyndicateRegistry is ISyndicateRegistry {
         return _deployerData[deployerAddress];
     }
 
-    function getSyndicateTokenExistsUsingAzimuthPoint(uint256 azimuthPoint)
-        external
-        view
-        returns (bool syndicateExists)
-    {
+    function getSyndicateTokenExistsUsingAzimuthPoint(
+        uint256 azimuthPoint
+    ) external view returns (bool syndicateExists) {
         return _syndicate[azimuthPoint].syndicateContract != address(0);
     }
 
-    function getSyndicateTokenAddressUsingAzimuthPoint(uint256 azimuthPoint)
-        external
-        view
-        returns (address syndicateAddress)
-    {
+    function getSyndicateTokenAddressUsingAzimuthPoint(
+        uint256 azimuthPoint
+    ) external view returns (address syndicateAddress) {
         syndicateAddress = _syndicate[azimuthPoint].syndicateContract;
         return syndicateAddress;
     }
 
-    function getSyndicateTokenOwnerAddressUsingAzimuthPoint(uint256 azimuthPoint)
-        external
-        view
-        returns (address syndicateOwner)
-    {
+    function getSyndicateTokenOwnerAddressUsingAzimuthPoint(
+        uint256 azimuthPoint
+    ) external view returns (address syndicateOwner) {
         syndicateOwner = _syndicate[azimuthPoint].syndicateOwner;
         return syndicateOwner;
     }
 
-    function getSyndicateTokenDeployerAddressUsingAzimuthPoint(uint256 azimuthPoint)
-        external
-        view
-        returns (address syndicateDeployerAddress)
-    {
+    function getSyndicateTokenDeployerAddressUsingAzimuthPoint(
+        uint256 azimuthPoint
+    ) external view returns (address syndicateDeployerAddress) {
         return _syndicate[azimuthPoint].syndicateDeployer;
     }
 
-    function getSyndicateTokenDeployerVersionUsingAzimuthPoint(uint256 azimuthPoint)
-        external
-        view
-        returns (uint64 syndicateDeployerVersion)
-    {
+    function getSyndicateTokenDeployerVersionUsingAzimuthPoint(
+        uint256 azimuthPoint
+    ) external view returns (uint64 syndicateDeployerVersion) {
         address deployer = _syndicate[azimuthPoint].syndicateDeployer;
         return _deployerData[deployer].deployerVersion;
     }
 
-    function getSyndicateTokenDeployerIsActiveUsingAzimuthPoint(uint256 azimuthPoint)
-        external
-        view
-        returns (bool syndicateDeployerIsActive)
-    {
+    function getSyndicateTokenDeployerIsActiveUsingAzimuthPoint(
+        uint256 azimuthPoint
+    ) external view returns (bool syndicateDeployerIsActive) {
         address deployer = _syndicate[azimuthPoint].syndicateDeployer;
         return _deployerData[deployer].isActive;
     }
 
-    function getSyndicateTokenLaunchTimeUsingAzimuthPoint(uint256 azimuthPoint)
-        external
-        view
-        returns (uint256 syndicateLaunchTime)
-    {
+    function getSyndicateTokenLaunchTimeUsingAzimuthPoint(
+        uint256 azimuthPoint
+    ) external view returns (uint256 syndicateLaunchTime) {
         return _syndicate[azimuthPoint].syndicateLaunchTime;
     }
 
-    function getSyndicateTokenExistsUsingAddress(address checkAddress) external view returns (bool syndicateExists) {
+    // TODO uint256 default value of 0 has some weird characteristics in how it relates to ~zod.
+    function getSyndicateTokenExistsUsingAddress(
+        address checkAddress
+    ) external view returns (bool syndicateExists) {
         uint256 azimuthPoint = _addressToAzimuthPoint[checkAddress];
         return _syndicate[azimuthPoint].syndicateContract != address(0);
     }
 
-    function getSyndicateAzimuthPointUsingAddress(address checkAddress)
-        external
-        view
-        returns (address syndicateAddress)
-    {
-        uint256 azimuthPoint = _addressToAzimuthPoint[checkAddress];
-        syndicateAddress = _syndicate[azimuthPoint].syndicateContract;
-        return syndicateAddress;
+    function getSyndicateAzimuthPointUsingAddress(
+        address checkAddress
+    ) external view returns (uint256 azimuthPoint) {
+        azimuthPoint = _addressToAzimuthPoint[checkAddress];
+        return azimuthPoint;
     }
 
-    function getSyndicateTokenOwnerAddressUsingAddress(address checkAddress)
-        external
-        view
-        returns (address syndicateOwner)
-    {
+    function getSyndicateUsingTokenAddress(
+        address checkAddress
+    ) external view returns (Syndicate memory someSyndicate) {
+        uint256 azimuthPoint = _addressToAzimuthPoint[checkAddress];
+        someSyndicate = _syndicate[azimuthPoint];
+        return someSyndicate;
+    }
+
+    function getSyndicateTokenOwnerAddressUsingAddress(
+        address checkAddress
+    ) external view returns (address syndicateOwner) {
         uint256 azimuthPoint = _addressToAzimuthPoint[checkAddress];
         syndicateOwner = _syndicate[azimuthPoint].syndicateOwner;
         return syndicateOwner;
     }
 
-    function getSyndicateTokenDeployerAddressUsingAddress(address checkAddress)
-        external
-        view
-        returns (address syndicateDeployerAddress)
-    {
+    function getSyndicateTokenDeployerAddressUsingAddress(
+        address checkAddress
+    ) external view returns (address syndicateDeployerAddress) {
         uint256 azimuthPoint = _addressToAzimuthPoint[checkAddress];
         return _syndicate[azimuthPoint].syndicateDeployer;
     }
 
-    function getSyndicateTokenDeployerVersionUsingAddress(address checkAddress)
-        external
-        view
-        returns (uint64 syndicateDeployerVersion)
-    {
+    function getSyndicateTokenDeployerVersionUsingAddress(
+        address checkAddress
+    ) external view returns (uint64 syndicateDeployerVersion) {
         uint256 azimuthPoint = _addressToAzimuthPoint[checkAddress];
         address deployer = _syndicate[azimuthPoint].syndicateDeployer;
         return _deployerData[deployer].deployerVersion;
     }
 
-    function getSyndicateTokenDeployerIsActiveUsingAddress(address checkAddress)
-        external
-        view
-        returns (bool syndicateDeployerIsActive)
-    {
+    function getSyndicateTokenDeployerIsActiveUsingAddress(
+        address checkAddress
+    ) external view returns (bool syndicateDeployerIsActive) {
         uint256 azimuthPoint = _addressToAzimuthPoint[checkAddress];
         address deployer = _syndicate[azimuthPoint].syndicateDeployer;
         return _deployerData[deployer].isActive;
     }
 
-    function getSyndicateTokenLaunchTimeUsingAddress(address checkAddress)
-        external
-        view
-        returns (uint256 syndicateLaunchTime)
-    {
+    function getSyndicateTokenLaunchTimeUsingAddress(
+        address checkAddress
+    ) external view returns (uint256 syndicateLaunchTime) {
         uint256 azimuthPoint = _addressToAzimuthPoint[checkAddress];
         return _syndicate[azimuthPoint].syndicateLaunchTime;
     }
 
     // Internal Functions
-    function _registerDeployer(SyndicateDeployerData calldata syndicateDeployerData) internal returns (bool success) {
-        require(syndicateDeployerData.deployerAddress != address(0), "Deployer is not at the null address");
-        require(!_isRegisteredDeployer[syndicateDeployerData.deployerAddress], "Deployer is already registered");
+    function _registerDeployer(
+        SyndicateDeployerData calldata syndicateDeployerData
+    ) internal returns (bool success) {
+        require(
+            syndicateDeployerData.deployerAddress != address(0),
+            "Deployer is not at the null address"
+        );
+        require(
+            !_isRegisteredDeployer[syndicateDeployerData.deployerAddress],
+            "Deployer is already registered"
+        );
         _syndicateDeployers.push(syndicateDeployerData.deployerAddress);
-        _deployerData[syndicateDeployerData.deployerAddress] = syndicateDeployerData;
+        _deployerData[
+            syndicateDeployerData.deployerAddress
+        ] = syndicateDeployerData;
         _isRegisteredDeployer[syndicateDeployerData.deployerAddress] = true;
         _isActiveDeployer[syndicateDeployerData.deployerAddress] = true;
 
         emit DeployerRegistered(
-            syndicateDeployerData.deployerAddress, syndicateDeployerData.deployerVersion, syndicateDeployerData.isActive
+            syndicateDeployerData.deployerAddress,
+            syndicateDeployerData.deployerVersion,
+            syndicateDeployerData.isActive
         );
 
         return true;
     }
 
-    function _deactivateDeployer(SyndicateDeployerData calldata syndicateDeployerData)
-        internal
-        returns (bool success)
-    {
+    function _deactivateDeployer(
+        SyndicateDeployerData calldata syndicateDeployerData
+    ) internal returns (bool success) {
         address deployer = syndicateDeployerData.deployerAddress;
         SyndicateDeployerData storage deployerData = _deployerData[deployer];
-        require(_isRegisteredDeployer[deployer], "Deployer is not registered and thus cannot be deactivated");
+        require(
+            _isRegisteredDeployer[deployer],
+            "Deployer is not registered and thus cannot be deactivated"
+        );
         require(deployerData.isActive, "Deployer already inactive");
         deployerData.isActive = false;
         _isActiveDeployer[syndicateDeployerData.deployerAddress] = false;
@@ -326,13 +348,15 @@ contract SyndicateRegistry is ISyndicateRegistry {
         return success;
     }
 
-    function _reactivateDeployer(SyndicateDeployerData calldata syndicateDeployerData)
-        internal
-        returns (bool success)
-    {
+    function _reactivateDeployer(
+        SyndicateDeployerData calldata syndicateDeployerData
+    ) internal returns (bool success) {
         address deployer = syndicateDeployerData.deployerAddress;
         SyndicateDeployerData storage deployerData = _deployerData[deployer];
-        require(_isRegisteredDeployer[deployer], "Deployer is not registered and thus cannot be deactivated");
+        require(
+            _isRegisteredDeployer[deployer],
+            "Deployer is not registered and thus cannot be deactivated"
+        );
         require(!deployerData.isActive, "Deployer already active");
         deployerData.isActive = true;
         _isActiveDeployer[syndicateDeployerData.deployerAddress] = true;
@@ -342,9 +366,12 @@ contract SyndicateRegistry is ISyndicateRegistry {
         return success;
     }
 
-    function _registerSyndicate(Syndicate calldata syndicate) internal returns (bool success) {
+    function _registerSyndicate(
+        Syndicate calldata syndicate
+    ) internal returns (bool success) {
         _syndicate[syndicate.azimuthPoint] = syndicate;
-        _addressToAzimuthPoint[syndicate.syndicateContract] = syndicate.azimuthPoint;
+        _addressToAzimuthPoint[syndicate.syndicateContract] = syndicate
+            .azimuthPoint;
         success = true;
         emit SyndicateRegistered({
             deployerAddress: msg.sender, // TODO triple check only the correct deployer can call this function
@@ -355,22 +382,31 @@ contract SyndicateRegistry is ISyndicateRegistry {
         return success;
     }
 
-    function _updateSyndicateOwnerRegistration(address syndicateToken, address newOwner)
-        internal
-        returns (bool success)
-    {
+    function _updateSyndicateOwnerRegistration(
+        address syndicateToken,
+        address newOwner
+    ) internal returns (bool success) {
         uint256 syndicatePoint = _addressToAzimuthPoint[syndicateToken];
         _syndicate[syndicatePoint].syndicateOwner = newOwner;
         success = true;
-        emit SyndicateOwnerUpdated({deployerAddress: msg.sender, syndicateToken: syndicateToken, owner: newOwner});
+        emit SyndicateOwnerUpdated({
+            deployerAddress: msg.sender,
+            syndicateToken: syndicateToken,
+            owner: newOwner
+        });
         return success;
     }
 
-    function _dissolveSyndicate(Syndicate calldata syndicate) internal returns (bool success) {
-        _syndicate[syndicate.azimuthPoint] = syndicate;
-        _addressToAzimuthPoint[syndicate.syndicateContract] = syndicate.azimuthPoint;
-        success = true;
+    function _dissolveSyndicate(
+        Syndicate calldata syndicate
+    ) internal returns (bool success) {
+        address deletedSyndicate = _syndicate[syndicate.azimuthPoint]
+            .syndicateContract;
 
+        delete _addressToAzimuthPoint[deletedSyndicate];
+        delete _syndicate[syndicate.azimuthPoint];
+
+        success = true;
         emit SyndicateDissolved({
             deployerAddress: msg.sender,
             syndicateToken: syndicate.syndicateContract,
@@ -380,10 +416,15 @@ contract SyndicateRegistry is ISyndicateRegistry {
         return success;
     }
 
-    function _proposeNewOwner(address proposedOwner) internal returns (bool success) {
+    function _proposeNewOwner(
+        address proposedOwner
+    ) internal returns (bool success) {
         _pendingOwner = proposedOwner;
         success = true;
-        emit OwnerProposed({pendingOwner: proposedOwner, registryOwner: msg.sender});
+        emit OwnerProposed({
+            pendingOwner: proposedOwner,
+            registryOwner: msg.sender
+        });
         return success;
     }
 
@@ -423,7 +464,10 @@ contract SyndicateRegistry is ISyndicateRegistry {
         return success;
     }
 
-    function _executeCall(address target, bytes calldata data) internal returns (bool success, bytes memory result) {
+    function _executeCall(
+        address target,
+        bytes calldata data
+    ) internal returns (bool success, bytes memory result) {
         // Add basic checks
         require(target != address(0), "Invalid target");
         require(target != address(this), "Cannot call self");
