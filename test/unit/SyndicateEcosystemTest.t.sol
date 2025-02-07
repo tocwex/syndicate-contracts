@@ -29,11 +29,13 @@ contract SyndicateEcosystemTest is Test {
 
     address public registryAddress;
     address public deployerAddress;
+    address public permissionedContract;
 
     address public owner;
     address public alice;
     address public bob;
     address public syndicateOwner;
+    address public tbaAddressForSamzod;
 
     uint256 public constant DEFAULT_MINT = 1000000000000000000000000; // 1M with 18 decimals
     uint256 public constant DEFAULT_MAXSUPPLY = 21000000000000000000000000; // 21M with 18 decimals
@@ -53,9 +55,7 @@ contract SyndicateEcosystemTest is Test {
 
         tbaRegistry = IERC6551Registry(vm.envAddress("SEPOLIA_TBA_REGISTRY"));
         azimuthContract = IERC721(vm.envAddress("SEPOLIA_AZIMUTH_CONTRACT"));
-        tbaImplementation = IERC6551Account(
-            payable(vm.envAddress("SEPOLIA_TBA_IMPLEMENTATION"))
-        );
+        tbaImplementation = IERC6551Account(payable(vm.envAddress("SEPOLIA_TBA_IMPLEMENTATION")));
 
         syndicateOwner = vm.envAddress("SEPOLIA_PUBLIC_KEY_0");
 
@@ -63,24 +63,14 @@ contract SyndicateEcosystemTest is Test {
         registry = new SyndicateRegistry();
         registryAddress = address(registry);
 
-        deployerV1 = new SyndicateDeployerV1(
-            address(registry),
-            address(azimuthContract),
-            FEE
-        );
+        deployerV1 = new SyndicateDeployerV1(address(registry), address(azimuthContract), FEE);
         deployerAddress = address(deployerV1);
 
         vm.stopPrank();
 
         // verify fork is working
-        assertTrue(
-            address(tbaRegistry).code.length > 0,
-            "TBA Registry not deployed"
-        );
-        assertTrue(
-            address(azimuthContract).code.length > 0,
-            "Azimuth not deployed"
-        );
+        assertTrue(address(tbaRegistry).code.length > 0, "TBA Registry not deployed");
+        assertTrue(address(azimuthContract).code.length > 0, "Azimuth not deployed");
     }
 
     // Helper functions
@@ -104,25 +94,12 @@ contract SyndicateEcosystemTest is Test {
     //// launch a syndicate token
 
     function _launchSyndicateToken() public returns (address) {
-        // vm.prank(syndicateOwner);
-        address tbaAddressForSamzod = _getTbaAddress(
-            address(tbaImplementation),
-            1024
-        );
+        tbaAddressForSamzod = _getTbaAddress(address(tbaImplementation), 1024);
         vm.prank(tbaAddressForSamzod);
         address syndicateTokenV1 = deployerV1.deploySyndicate(
-            address(tbaImplementation),
-            SALT,
-            DEFAULT_MINT,
-            DEFAULT_MAXSUPPLY,
-            1024,
-            "~samzod Test Syndicate",
-            "~SAMZOD"
+            address(tbaImplementation), SALT, DEFAULT_MINT, DEFAULT_MAXSUPPLY, 1024, "~samzod Test Syndicate", "~SAMZOD"
         );
-        console2.log(
-            "Syndicate Contract Launched at: ",
-            address(syndicateTokenV1)
-        );
+        console2.log("Syndicate Contract Launched at: ", address(syndicateTokenV1));
         launchedSyndicate = SyndicateTokenV1(payable(syndicateTokenV1));
         console2.log("syndicateOwner: ", launchedSyndicate.getOwner());
         console2.log("initialSupply: ", launchedSyndicate.totalSupply());
@@ -131,69 +108,36 @@ contract SyndicateEcosystemTest is Test {
         console2.log("name: ", launchedSyndicate.name());
         console2.log("symbol: ", launchedSyndicate.symbol());
 
-        assertTrue(
-            address(syndicateTokenV1).code.length > 0,
-            "Syndicate Token not deployed"
-        );
+        assertTrue(address(syndicateTokenV1).code.length > 0, "Syndicate Token not deployed");
 
         return address(launchedSyndicate);
     }
 
     //// get TBA address
-    function _getTbaAddress(
-        address implementation,
-        uint256 tokenId
-    ) internal view returns (address) {
-        return
-            tbaRegistry.account(
-                implementation,
-                SALT,
-                block.chainid,
-                address(azimuthContract),
-                tokenId
-            );
+    function _getTbaAddress(address implementation, uint256 tokenId) internal view returns (address) {
+        return tbaRegistry.account(implementation, SALT, block.chainid, address(azimuthContract), tokenId);
     }
 
     // Core Tests
     //// Registry Tests
     function test_InitialDeploymentOwnership() public view {
-        assertEq(
-            owner,
-            registry.getOwner(),
-            "Owner should be the deployment address"
-        );
-        assertEq(
-            registry.getOwner(),
-            deployerV1.getOwner(),
-            "Owner should be the registry contract owner"
-        );
+        assertEq(owner, registry.getOwner(), "Owner should be the deployment address");
+        assertEq(registry.getOwner(), deployerV1.getOwner(), "Owner should be the registry contract owner");
     }
 
     function test_ProposeNewRegistryOwnerByOwner() public {
         vm.prank(owner);
         registry.proposeNewOwner(bob);
-        assertEq(
-            bob,
-            registry.getPendingOwner(),
-            "Pending owner should be proposed owner"
-        );
+        assertEq(bob, registry.getPendingOwner(), "Pending owner should be proposed owner");
     }
 
     function test_AcceptRegistryOwnershipByPendingOwner() public {
         vm.prank(owner);
         registry.proposeNewOwner(bob);
-        assertEq(
-            bob,
-            registry.getPendingOwner(),
-            "Pending owner should be proposed owner"
-        );
+        assertEq(bob, registry.getPendingOwner(), "Pending owner should be proposed owner");
         vm.prank(bob);
         registry.acceptOwnership();
-        assertEq(
-            bob,
-            registry.getOwner(),
-            "Previously pending owner should be owner"
-        );
+        assertEq(bob, registry.getOwner(), "Previously pending owner should be owner");
     }
 
     function test_RejectRegistryOwnershipByPendingOwner() public {
@@ -201,27 +145,15 @@ contract SyndicateEcosystemTest is Test {
         registry.proposeNewOwner(bob);
         vm.prank(bob);
         registry.rejectOwnership();
-        assertEq(
-            owner,
-            registry.getOwner(),
-            "Old owner should still be the owner"
-        );
+        assertEq(owner, registry.getOwner(), "Old owner should still be the owner");
     }
 
     function test_NullifyRegistryOwnershipProposalByOwner() public {
         vm.startPrank(owner);
         registry.proposeNewOwner(bob);
         registry.nullifyProposal();
-        assertEq(
-            owner,
-            registry.getOwner(),
-            "Old Owner should still be the owner"
-        );
-        assertEq(
-            address(0),
-            registry.getPendingOwner(),
-            "Pending owner should be reset to the null address"
-        );
+        assertEq(owner, registry.getOwner(), "Old Owner should still be the owner");
+        assertEq(address(0), registry.getPendingOwner(), "Pending owner should be reset to the null address");
     }
 
     function test_RevertOnNullifyRegistryOwnershipProposalByNotOwner() public {
@@ -235,11 +167,7 @@ contract SyndicateEcosystemTest is Test {
     function test_RenounceRegistryOwnershipByOwner() public {
         vm.prank(owner);
         registry.renounceOwnership();
-        assertEq(
-            address(0),
-            registry.getOwner(),
-            "Owner address should be the null address"
-        );
+        assertEq(address(0), registry.getOwner(), "Owner address should be the null address");
     }
 
     function test_RevertOnRenounceRegistryOwnershipByNotOwner() public {
@@ -250,11 +178,7 @@ contract SyndicateEcosystemTest is Test {
 
     function test_RegisterNewDeployerByOwner() public {
         vm.expectEmit(true, false, false, true); // index 1 has value, 2 and 3 no value, 4 has data for non-indexed values
-        emit ISyndicateRegistry.DeployerRegistered(
-            address(deployerV1),
-            1,
-            true
-        );
+        emit ISyndicateRegistry.DeployerRegistered(address(deployerV1), 1, true);
 
         vm.prank(owner);
         registry.registerDeployer(
@@ -264,11 +188,7 @@ contract SyndicateEcosystemTest is Test {
                 isActive: true
             })
         );
-        assertEq(
-            true,
-            registry.isRegisteredDeployer(address(deployerV1)),
-            "Is not registered deployment"
-        );
+        assertEq(true, registry.isRegisteredDeployer(address(deployerV1)), "Is not registered deployment");
         // TODO add expect Emit
     }
 
@@ -324,9 +244,7 @@ contract SyndicateEcosystemTest is Test {
         );
     }
 
-    function testFuzz_RevertOnRegisterNewDeployerByNotOwner(
-        address[] calldata randomCallers
-    ) public {
+    function testFuzz_RevertOnRegisterNewDeployerByNotOwner(address[] calldata randomCallers) public {
         vm.assume(randomCallers.length > 0);
         vm.assume(randomCallers.length <= 256);
         for (uint256 i = 0; i < randomCallers.length; i++) {
@@ -345,19 +263,16 @@ contract SyndicateEcosystemTest is Test {
         }
     }
 
-    function testFuzz_RevertOnRegisterSyndicateTokenInRegistryByNonDeployer(
-        address[] calldata randomCallers
-    ) public {
+    function testFuzz_RevertOnRegisterSyndicateTokenInRegistryByNonDeployer(address[] calldata randomCallers) public {
         address tokenOwner = makeAddr("tokenOwner");
         address tokenContract = makeAddr("tokenContract");
-        ISyndicateRegistry.Syndicate memory syndicate = ISyndicateRegistry
-            .Syndicate({
-                syndicateOwner: tokenOwner,
-                syndicateContract: tokenContract,
-                syndicateDeployer: address(deployerV1),
-                syndicateLaunchTime: block.number,
-                azimuthPoint: 1
-            });
+        ISyndicateRegistry.Syndicate memory syndicate = ISyndicateRegistry.Syndicate({
+            syndicateOwner: tokenOwner,
+            syndicateContract: tokenContract,
+            syndicateDeployer: address(deployerV1),
+            syndicateLaunchTime: block.number,
+            azimuthPoint: 1
+        });
         vm.assume(randomCallers.length > 0);
         vm.assume(randomCallers.length <= 256);
         for (uint256 i = 0; i < randomCallers.length; i++) {
@@ -370,9 +285,7 @@ contract SyndicateEcosystemTest is Test {
         }
     }
 
-    function testFuzz_RevertOnUpdateSyndicateTokenOwnerRegistryByNonDeployer(
-        address[] calldata randomCallers
-    ) public {
+    function testFuzz_RevertOnUpdateSyndicateTokenOwnerRegistryByNonDeployer(address[] calldata randomCallers) public {
         address newTokenOwner = makeAddr("newTokenOwner");
         address tokenContract = makeAddr("tokenContract");
         vm.assume(randomCallers.length > 0);
@@ -383,10 +296,7 @@ contract SyndicateEcosystemTest is Test {
             }
             vm.prank(randomCallers[i]);
             vm.expectRevert("Unauthorized: Only registered deployers");
-            registry.updateSyndicateOwnerRegistration(
-                tokenContract,
-                newTokenOwner
-            );
+            registry.updateSyndicateOwnerRegistration(tokenContract, newTokenOwner);
         }
     }
 
@@ -400,22 +310,17 @@ contract SyndicateEcosystemTest is Test {
                 isActive: true
             })
         );
-        assertEq(
-            registry.isActiveDeployer(address(deployerV1)),
-            false,
-            "Deployer should be inactive at this stage"
-        );
+        assertEq(registry.isActiveDeployer(address(deployerV1)), false, "Deployer should be inactive at this stage");
 
         address tokenOwner = makeAddr("tokenOwner");
         address tokenContract = makeAddr("tokenContract");
-        ISyndicateRegistry.Syndicate memory syndicate = ISyndicateRegistry
-            .Syndicate({
-                syndicateOwner: tokenOwner,
-                syndicateContract: tokenContract,
-                syndicateDeployer: address(deployerV1),
-                syndicateLaunchTime: block.number,
-                azimuthPoint: 1
-            });
+        ISyndicateRegistry.Syndicate memory syndicate = ISyndicateRegistry.Syndicate({
+            syndicateOwner: tokenOwner,
+            syndicateContract: tokenContract,
+            syndicateDeployer: address(deployerV1),
+            syndicateLaunchTime: block.number,
+            azimuthPoint: 1
+        });
 
         vm.prank(address(deployerV1));
         vm.expectRevert("Unauthorized: Only active deployers");
@@ -436,15 +341,9 @@ contract SyndicateEcosystemTest is Test {
             })
         );
 
-        ISyndicateRegistry.SyndicateDeployerData
-            memory dataBeforeDeactivation = registry.getDeployerData(
-                address(deployerV1)
-            );
-        assertEq(
-            dataBeforeDeactivation.isActive,
-            true,
-            "Deployer should be active at this stage"
-        );
+        ISyndicateRegistry.SyndicateDeployerData memory dataBeforeDeactivation =
+            registry.getDeployerData(address(deployerV1));
+        assertEq(dataBeforeDeactivation.isActive, true, "Deployer should be active at this stage");
         assertEq(
             dataBeforeDeactivation.isActive,
             registry.isActiveDeployer(address(deployerV1)),
@@ -462,8 +361,7 @@ contract SyndicateEcosystemTest is Test {
                 isActive: true
             })
         );
-        ISyndicateRegistry.SyndicateDeployerData memory currentData = registry
-            .getDeployerData(address(deployerV1));
+        ISyndicateRegistry.SyndicateDeployerData memory currentData = registry.getDeployerData(address(deployerV1));
 
         assertEq(currentData.isActive, false, "Deployer should be deactivated");
         assertEq(
@@ -483,15 +381,9 @@ contract SyndicateEcosystemTest is Test {
             })
         );
 
-        ISyndicateRegistry.SyndicateDeployerData
-            memory dataBeforeDeactivation = registry.getDeployerData(
-                address(deployerV1)
-            );
-        assertEq(
-            dataBeforeDeactivation.isActive,
-            true,
-            "Deployer should be active at this stage"
-        );
+        ISyndicateRegistry.SyndicateDeployerData memory dataBeforeDeactivation =
+            registry.getDeployerData(address(deployerV1));
+        assertEq(dataBeforeDeactivation.isActive, true, "Deployer should be active at this stage");
 
         vm.prank(bob);
         vm.expectRevert("Unauthorized: Only registry owner");
@@ -515,15 +407,9 @@ contract SyndicateEcosystemTest is Test {
             })
         );
 
-        ISyndicateRegistry.SyndicateDeployerData
-            memory dataBeforeDeactivation = registry.getDeployerData(
-                address(deployerV1)
-            );
-        assertEq(
-            dataBeforeDeactivation.isActive,
-            true,
-            "Deployer should be active at this stage"
-        );
+        ISyndicateRegistry.SyndicateDeployerData memory dataBeforeDeactivation =
+            registry.getDeployerData(address(deployerV1));
+        assertEq(dataBeforeDeactivation.isActive, true, "Deployer should be active at this stage");
 
         vm.expectEmit(true, false, false, true); // index 1 has value, 2 and 3 no value, 4 has data for non-indexed values
         emit ISyndicateRegistry.DeployerDeactivated(address(deployerV1), false);
@@ -537,14 +423,9 @@ contract SyndicateEcosystemTest is Test {
                 isActive: true
             })
         );
-        ISyndicateRegistry.SyndicateDeployerData memory currentData = registry
-            .getDeployerData(address(deployerV1));
+        ISyndicateRegistry.SyndicateDeployerData memory currentData = registry.getDeployerData(address(deployerV1));
 
-        assertEq(
-            currentData.isActive,
-            false,
-            "Deployer should be deactivated at this stage"
-        );
+        assertEq(currentData.isActive, false, "Deployer should be deactivated at this stage");
 
         // Reactivate the Deployer
         vm.expectEmit(true, false, false, true); // index 1 has value, 2 and 3 no value, 4 has data for non-indexed values
@@ -559,14 +440,9 @@ contract SyndicateEcosystemTest is Test {
             })
         );
 
-        ISyndicateRegistry.SyndicateDeployerData memory newData = registry
-            .getDeployerData(address(deployerV1));
+        ISyndicateRegistry.SyndicateDeployerData memory newData = registry.getDeployerData(address(deployerV1));
 
-        assertEq(
-            newData.isActive,
-            true,
-            "Deployer should be reactivated at this stage"
-        );
+        assertEq(newData.isActive, true, "Deployer should be reactivated at this stage");
         assertEq(
             newData.isActive,
             registry.isActiveDeployer(address(deployerV1)),
@@ -585,15 +461,9 @@ contract SyndicateEcosystemTest is Test {
             })
         );
 
-        ISyndicateRegistry.SyndicateDeployerData
-            memory dataBeforeDeactivation = registry.getDeployerData(
-                address(deployerV1)
-            );
-        assertEq(
-            dataBeforeDeactivation.isActive,
-            true,
-            "Deployer should be active at this stage"
-        );
+        ISyndicateRegistry.SyndicateDeployerData memory dataBeforeDeactivation =
+            registry.getDeployerData(address(deployerV1));
+        assertEq(dataBeforeDeactivation.isActive, true, "Deployer should be active at this stage");
 
         vm.expectEmit(true, false, false, true); // index 1 has value, 2 and 3 no value, 4 has data for non-indexed values
         emit ISyndicateRegistry.DeployerDeactivated(address(deployerV1), false);
@@ -607,14 +477,9 @@ contract SyndicateEcosystemTest is Test {
                 isActive: true
             })
         );
-        ISyndicateRegistry.SyndicateDeployerData memory currentData = registry
-            .getDeployerData(address(deployerV1));
+        ISyndicateRegistry.SyndicateDeployerData memory currentData = registry.getDeployerData(address(deployerV1));
 
-        assertEq(
-            currentData.isActive,
-            false,
-            "Deployer should be deactivated at this stage"
-        );
+        assertEq(currentData.isActive, false, "Deployer should be deactivated at this stage");
 
         // Attempt to reactivate the Deployer as non-owner
         vm.prank(bob);
@@ -631,15 +496,8 @@ contract SyndicateEcosystemTest is Test {
     function test_LaunchAndRegisterNewSyndicate() public {
         _registerDeployer();
         _launchSyndicateToken();
-        address launchedTokenOwner = _getTbaAddress(
-            address(tbaImplementation),
-            1024
-        );
-        assertEq(
-            launchedSyndicate.getOwner(),
-            launchedTokenOwner,
-            "Syndicate owner mismatch"
-        );
+        address launchedTokenOwner = _getTbaAddress(address(tbaImplementation), 1024);
+        assertEq(launchedSyndicate.getOwner(), launchedTokenOwner, "Syndicate owner mismatch");
     }
 
     function test_ChangeSyndicateDeployerFeeRecipientByRegistryOwner() public {
@@ -658,9 +516,7 @@ contract SyndicateEcosystemTest is Test {
         );
     }
 
-    function test_PRevertOnChangeSyndicateDeployerFeeRecipientByRegistryNotOwner()
-        public
-    {
+    function test_RevertOnChangeSyndicateDeployerFeeRecipientByRegistryNotOwner() public {
         _registerDeployer();
         address feeRecipient = deployerV1.getFeeRecipient();
         console2.log("Fee recipient upon deployment is: ", feeRecipient);
@@ -687,35 +543,19 @@ contract SyndicateEcosystemTest is Test {
         address samzodSyndicate = _launchSyndicateToken();
         launchedSyndicate = SyndicateTokenV1(payable(samzodSyndicate));
 
-        address tbaAddressForSamzod = _getTbaAddress(
-            address(tbaImplementation),
-            1024
-        );
-        uint256 samzodBalance = launchedSyndicate.balanceOf(
-            tbaAddressForSamzod
-        );
+        tbaAddressForSamzod = _getTbaAddress(address(tbaImplementation), 1024);
+        uint256 samzodBalance = launchedSyndicate.balanceOf(tbaAddressForSamzod);
         console2.log("Samzod's initial balance is: ", samzodBalance);
 
         uint256 feeRecipientBalance = launchedSyndicate.balanceOf(owner);
-        console2.log(
-            "Owner / initial fee recipient balance is: ",
-            feeRecipientBalance
-        );
+        console2.log("Owner / initial fee recipient balance is: ", feeRecipientBalance);
+        assertEq(feeRecipientBalance, (DEFAULT_MINT * newFee) / 10000, "Expected fee mismatch");
         assertEq(
-            feeRecipientBalance,
-            (DEFAULT_MINT * newFee) / 10000,
-            "Expected fee mismatch"
-        );
-        assertEq(
-            samzodBalance,
-            DEFAULT_MINT - ((DEFAULT_MINT * newFee) / 10000),
-            "Expected initial owner balance mismatch"
+            samzodBalance, DEFAULT_MINT - ((DEFAULT_MINT * newFee) / 10000), "Expected initial owner balance mismatch"
         );
     }
 
-    function test_ChangeFeeRecipientAndRecieveExpectedAmountFromNewMint()
-        public
-    {
+    function test_ChangeFeeRecipientAndRecieveExpectedAmountFromNewMint() public {
         _registerDeployer();
         vm.prank(owner);
         deployerV1.changeFeeRecipient(bob);
@@ -725,13 +565,8 @@ contract SyndicateEcosystemTest is Test {
         address samzodSyndicate = _launchSyndicateToken();
         launchedSyndicate = SyndicateTokenV1(payable(samzodSyndicate));
 
-        address tbaAddressForSamzod = _getTbaAddress(
-            address(tbaImplementation),
-            1024
-        );
-        uint256 samzodBalance = launchedSyndicate.balanceOf(
-            tbaAddressForSamzod
-        );
+        tbaAddressForSamzod = _getTbaAddress(address(tbaImplementation), 1024);
+        uint256 samzodBalance = launchedSyndicate.balanceOf(tbaAddressForSamzod);
         console2.log("Samzod's initial balance is: ", samzodBalance);
 
         uint256 feeRecipientBalance = launchedSyndicate.balanceOf(bob);
@@ -739,21 +574,10 @@ contract SyndicateEcosystemTest is Test {
         console2.log("Updated fee recipient balance is: ", feeRecipientBalance);
 
         uint256 oldOwnerBalance = launchedSyndicate.balanceOf(owner);
-        console2.log(
-            "Registry owner / old fee recipient balance is: ",
-            oldOwnerBalance
-        );
+        console2.log("Registry owner / old fee recipient balance is: ", oldOwnerBalance);
 
-        assertEq(
-            FEE,
-            protocolFee,
-            "Protocol fee should be unchanged from initialization value"
-        );
-        assertEq(
-            feeRecipientBalance,
-            (DEFAULT_MINT * protocolFee) / 10000,
-            "Expected fee mismatch"
-        );
+        assertEq(FEE, protocolFee, "Protocol fee should be unchanged from initialization value");
+        assertEq(feeRecipientBalance, (DEFAULT_MINT * protocolFee) / 10000, "Expected fee mismatch");
         assertEq(
             samzodBalance,
             DEFAULT_MINT - ((DEFAULT_MINT * protocolFee) / 10000),
@@ -769,9 +593,7 @@ contract SyndicateEcosystemTest is Test {
             DEFAULT_MINT - ((DEFAULT_MINT * protocolFee) / 10000),
             "Alice recieved unexpected number of tokens"
         );
-        uint256 secondMintFeeRecipientBalance = launchedSyndicate.balanceOf(
-            bob
-        );
+        uint256 secondMintFeeRecipientBalance = launchedSyndicate.balanceOf(bob);
         uint256 currentTotalSupply = launchedSyndicate.totalSupply();
         console2.log("Current total supply is: ", currentTotalSupply);
         assertEq(
@@ -781,40 +603,30 @@ contract SyndicateEcosystemTest is Test {
         );
     }
 
-    function test_AddPermissionedContractMappingToDeployerByRegistryOwner()
-        public
-    {
+    function test_AddPermissionedContractMappingToDeployerByRegistryOwner() public {
         _registerDeployer();
-        address permissionedContract = makeAddr("permissionedContract");
+        permissionedContract = makeAddr("permissionedContract");
         vm.prank(owner);
         deployerV1.addPermissionedContract(permissionedContract);
         // TODO Add expect emit
         assertEq(
-            deployerV1.checkIfPermissioned(permissionedContract),
-            true,
-            "Contract not successfully added to mapping"
+            deployerV1.checkIfPermissioned(permissionedContract), true, "Contract not successfully added to mapping"
         );
     }
 
-    function test_RevertOnAddPermissionedContractMappingToDeployerByNotRegistryOwner()
-        public
-    {
+    function test_RevertOnAddPermissionedContractMappingToDeployerByNotRegistryOwner() public {
         _registerDeployer();
-        address permissionedContract = makeAddr("permissionedContract");
+        permissionedContract = makeAddr("permissionedContract");
         vm.prank(bob);
         vm.expectRevert("Unauthorized: Only registry owner");
         deployerV1.addPermissionedContract(permissionedContract);
 
-        assertEq(
-            deployerV1.checkIfPermissioned(permissionedContract),
-            false,
-            "Contract mysteriously added to mapping"
-        );
+        assertEq(deployerV1.checkIfPermissioned(permissionedContract), false, "Contract mysteriously added to mapping");
     }
 
-    function testFuzz_DissolveSyndicateViaDeployerByNotSyndicateTokenContract(
-        address[] calldata randomCallers
-    ) public {
+    function testFuzz_RevertOnDissolveSyndicateViaDeployerByNotSyndicateTokenContract(address[] calldata randomCallers)
+        public
+    {
         _registerDeployer();
         address samzodSyndicate = _launchSyndicateToken();
         launchedSyndicate = SyndicateTokenV1(payable(samzodSyndicate));
@@ -826,68 +638,513 @@ contract SyndicateEcosystemTest is Test {
                 continue;
             }
             vm.prank(randomCallers[i]);
-            vm.expectRevert(
-                "Unauthorized: Only syndicates launched from this deployer"
-            );
+            vm.expectRevert("Unauthorized: Only syndicates launched from this deployer");
             deployerV1.dissolveSyndicateInRegistry(1024);
         }
     }
 
     // TODO testFuzz_RegisterSyndicateViaDeployerByNotSyndicateTokenContract
     // TODO tests for checking whitelist functionality
+    function test_BetaModeWhitelistOnlyAllowsPermissionedAccess() public {
+        _registerDeployer();
+        vm.startPrank(owner);
+        deployerV1.toggleBetaMode(true);
+        deployerV1.addWhitelistedPoint(1024);
+        vm.stopPrank();
+        _launchSyndicateToken();
+        bool syndicateExists = registry.getSyndicateTokenExistsUsingAzimuthPoint(1024);
+        assertEq(syndicateExists, true, "~samzod syndicate not launched");
+    }
+
+    function testFail_BetaModeWhitelistBlocksNonPermissionedAccess() public {
+        _registerDeployer();
+        vm.prank(owner);
+        deployerV1.toggleBetaMode(true);
+        _launchSyndicateToken();
+        bool syndicateExists = registry.getSyndicateTokenExistsUsingAzimuthPoint(1024);
+        assertEq(syndicateExists, false, "~samzod syndicate circumvented beta whitelist");
+    }
+
+    function test_BetaModeWhitelistOffStillAllowsPermissionedAccess() public {
+        _registerDeployer();
+        vm.startPrank(owner);
+        deployerV1.toggleBetaMode(true);
+        deployerV1.addWhitelistedPoint(1024);
+        deployerV1.toggleBetaMode(false);
+        vm.stopPrank();
+        _launchSyndicateToken();
+        bool syndicateExists = registry.getSyndicateTokenExistsUsingAzimuthPoint(1024);
+        assertEq(syndicateExists, true, "~samzod syndicate not launched");
+    }
+
+    function test_OnlyUnlaunchedSyndicatesCanLaunchASyndicateContract() public {
+        _registerDeployer();
+        _launchSyndicateToken();
+
+        vm.prank(tbaAddressForSamzod);
+        vm.expectRevert("This syndicate already exists");
+        address duplicateSyndicateToken = deployerV1.deploySyndicate(
+            address(tbaImplementation),
+            SALT,
+            DEFAULT_MINT,
+            DEFAULT_MAXSUPPLY,
+            1024,
+            "~samzod duplicate syndicate",
+            "~SAMDUO"
+        );
+        console2.log("Duplicate contract launched at: ", duplicateSyndicateToken);
+    }
 
     //// Syndicate Token Tests
+
     function test_UpdateSyndicateOwnershipAddressToValidTba() public {
         _registerDeployer();
         _launchSyndicateToken();
 
-        address launchedTokenOwner = _getTbaAddress(
-            address(tbaImplementation),
-            1024
-        );
-        address newOwnershipTba = _getTbaAddress(
-            address(NULL_IMPLEMENTATION),
-            1024
-        );
+        address launchedTokenOwner = _getTbaAddress(address(tbaImplementation), 1024);
+        address newOwnershipTba = _getTbaAddress(address(NULL_IMPLEMENTATION), 1024);
 
         vm.prank(address(launchedTokenOwner));
-        launchedSyndicate.updateOwnershipTba(
-            newOwnershipTba,
-            address(NULL_IMPLEMENTATION),
-            SALT
+        launchedSyndicate.updateOwnershipTba(newOwnershipTba, address(NULL_IMPLEMENTATION), SALT);
+        console2.log("New Owner of ", address(launchedSyndicate), "is: ", launchedSyndicate.getOwner());
+        assertEq(newOwnershipTba, launchedSyndicate.getOwner(), "Syndicate Token Owner failed to update properly");
+    }
+
+    function test_DissolveAndRelaunchSyndicate() public {
+        _registerDeployer();
+
+        address dissolvableSyndicate;
+
+        tbaAddressForSamzod = _getTbaAddress(address(tbaImplementation), 1024);
+
+        vm.startPrank(tbaAddressForSamzod);
+        console2.log(msg.sender);
+        dissolvableSyndicate = deployerV1.deploySyndicate(
+            address(tbaImplementation),
+            SALT,
+            DEFAULT_MINT,
+            DEFAULT_MAXSUPPLY,
+            1024,
+            "~samzod duplicate syndicate",
+            "~SAMDUO"
         );
-        console2.log(
-            "New Owner of ",
-            address(launchedSyndicate),
-            "is: ",
-            launchedSyndicate.getOwner()
-        );
+
+        SyndicateTokenV1(payable(dissolvableSyndicate)).dissolveSyndicate();
+        vm.stopPrank();
+
+        bool stillExists = registry.getSyndicateTokenExistsUsingAzimuthPoint(1024);
+
+        ISyndicateRegistry.Syndicate memory azimuthPointToSyndicateMapping =
+            registry.getSyndicateUsingTokenAddress(dissolvableSyndicate);
+        uint256 addressToAzimuthPointMapping = registry.getSyndicateAzimuthPointUsingAddress(dissolvableSyndicate);
+        console2.log("Dissolved Syndicate owner:", azimuthPointToSyndicateMapping.syndicateOwner);
+        console2.log("Dissolved Syndicate contract:", azimuthPointToSyndicateMapping.syndicateContract);
+        console2.log("Dissolved Syndicate deployer:", azimuthPointToSyndicateMapping.syndicateDeployer);
+        console2.log("Dissolved Syndicate launch time:", azimuthPointToSyndicateMapping.syndicateLaunchTime);
+        console2.log("Dissolved Syndicate azimuth point:", azimuthPointToSyndicateMapping.azimuthPoint);
+        console2.log("Dissolved Syndicate address points to Azimuth Point: ", addressToAzimuthPointMapping);
+        assertEq(stillExists, false, "Syndicate should no longer exist");
+
+        assertEq(address(0), azimuthPointToSyndicateMapping.syndicateOwner);
+        assertEq(address(0), azimuthPointToSyndicateMapping.syndicateContract);
+        assertEq(address(0), azimuthPointToSyndicateMapping.syndicateDeployer);
+        assertEq(uint256(0), azimuthPointToSyndicateMapping.syndicateLaunchTime);
+        assertEq(uint256(0), azimuthPointToSyndicateMapping.azimuthPoint);
         assertEq(
-            newOwnershipTba,
-            launchedSyndicate.getOwner(),
-            "Syndicate Token Owner failed to update properly"
+            addressToAzimuthPointMapping,
+            0,
+            "Syndicate Token address should return default value of 0 from _addressToAzimuthPoint mapping"
+        );
+        _launchSyndicateToken();
+
+        bool relaunchedExists = registry.getSyndicateTokenExistsUsingAzimuthPoint(1024);
+
+        ISyndicateRegistry.Syndicate memory relaunchedAzimuthPointToSyndicateMapping =
+            registry.getSyndicateUsingTokenAddress(address(launchedSyndicate));
+        uint256 relaunchedAddressToAzimuthPointMapping =
+            registry.getSyndicateAzimuthPointUsingAddress(address(launchedSyndicate));
+        console2.log("Relaunched Syndicate owner:", relaunchedAzimuthPointToSyndicateMapping.syndicateOwner);
+        console2.log("Relaunched Syndicate contract:", relaunchedAzimuthPointToSyndicateMapping.syndicateContract);
+        console2.log("Relaunched Syndicate deployer:", relaunchedAzimuthPointToSyndicateMapping.syndicateDeployer);
+        console2.log("Relaunched Syndicate launch time:", relaunchedAzimuthPointToSyndicateMapping.syndicateLaunchTime);
+        console2.log("Relaunched Syndicate azimuth point:", relaunchedAzimuthPointToSyndicateMapping.azimuthPoint);
+        console2.log("Relaunched Syndicate address points to Azimuth Point: ", relaunchedAddressToAzimuthPointMapping);
+        assertEq(relaunchedExists, true, "Relaunched syndicate should exist");
+    }
+
+    function test_RevertOnUpdateSyndicateOwnerAddressToInvalidAddress() public {
+        address randomNonTba = makeAddr("randomNonTba");
+        _registerDeployer();
+        _launchSyndicateToken();
+
+        vm.startPrank(tbaAddressForSamzod);
+        vm.expectRevert();
+        SyndicateTokenV1(payable(launchedSyndicate)).updateOwnershipTba(randomNonTba, address(tbaImplementation), SALT);
+    }
+
+    function testFuzz_RevertOnUpdateSyndicateOwnerAddressAsNonOwner(address[] calldata randomCallers) public {
+        _registerDeployer();
+        _launchSyndicateToken();
+
+        address secondTbaAddressForSamzod = _getTbaAddress(address(NULL_IMPLEMENTATION), 1024);
+
+        vm.assume(randomCallers.length > 0);
+        vm.assume(randomCallers.length <= 256);
+        for (uint256 i = 0; i < randomCallers.length; i++) {
+            if (randomCallers[i] == address(0) || randomCallers[i] == tbaAddressForSamzod) {
+                continue;
+            }
+            vm.prank(randomCallers[i]);
+            vm.expectRevert("Unauthorized: Only syndicate owner");
+            SyndicateTokenV1(payable(launchedSyndicate)).updateOwnershipTba(
+                secondTbaAddressForSamzod, address(NULL_IMPLEMENTATION), SALT
+            );
+        }
+        assertEq(
+            tbaAddressForSamzod,
+            registry.getSyndicateTokenOwnerAddressUsingAddress(address(launchedSyndicate)),
+            "Syndicate token owner should be the original TBA for ~samzod"
         );
     }
 
-    // TODO testFail_UpdateSyndicateOwnershipAddressToInvalidTba
-    // TODO testFail_UpdateSyndicateOwnershipAddressAsNotOwner
-    // TODO test_MintToAddressByOwnerAndFeePaidToFeeRecipient
-    // TODO testFail_MintToAddressByNonOwner
-    // TODO test_BatchMintToAddressByOwnerAndFeePaidToFeeRecipient
-    // TODO testFail_BatchMintToAddressByNonOwner
-    // TODO test_TurnOnCustomWhitelistByOwner
-    // TODO testFail_TurnOnCustomWhitelistByNotOwner
-    // TODO test_TurnOffCustomWhitelistByOwner
-    // TODO test_TurnOffCustomWhitelistByNotOwner
-    // TODO test_FreeMintByWhitelistedAddress
-    // TODO test_FreeBatchMintByWhitelistedAddress
-    // TODO testFail_MintOverMaxSupplyByOwner
-    // TODO test_DissolveSyndicateByOwner
-    // TODO testFail_DissolveSyndicateByNotOwner
+    function test_MintToAddressByOwnerAndFeePaidToFeeRecipient() public {
+        _registerDeployer();
+        _launchSyndicateToken();
+        vm.prank(tbaAddressForSamzod);
+        SyndicateTokenV1 samzodSyndicate = SyndicateTokenV1(payable(launchedSyndicate));
+        samzodSyndicate.mint(bob, 10000 * 1e18);
 
-    function testFuzz_DissolveSyndicateByNotSyndicateOwner(
-        address[] calldata randomCallers
-    ) public {
+        uint256 bobsBalance = samzodSyndicate.balanceOf(bob);
+        uint256 ecosystemOwnersBalance = samzodSyndicate.balanceOf(owner);
+        uint256 samzodsBalance = samzodSyndicate.balanceOf(tbaAddressForSamzod);
+        uint256 totalSamzodSupply = samzodSyndicate.totalSupply();
+
+        console2.log("Bob's address is: ", address(bob));
+        console2.log("Bob's Balance is: ", bobsBalance);
+        console2.log("the Ecosystem Owner's address is: ", address(owner));
+        console2.log("Ecosystem Owners's Balance is: ", ecosystemOwnersBalance);
+
+        assertEq(
+            bobsBalance + ecosystemOwnersBalance + samzodsBalance,
+            totalSamzodSupply,
+            "Expected balances mismatch with total supply"
+        );
+    }
+
+    function testFuzz_RevertOnMintToAddressByNonOwner(address[] calldata randomCallers) public {
+        _registerDeployer();
+        address samzodSyndicate = _launchSyndicateToken();
+        launchedSyndicate = SyndicateTokenV1(payable(samzodSyndicate));
+
+        vm.assume(randomCallers.length > 0);
+        vm.assume(randomCallers.length <= 256);
+        for (uint256 i = 0; i < randomCallers.length; i++) {
+            if (randomCallers[i] == address(0) || randomCallers[i] == tbaAddressForSamzod) {
+                continue;
+            }
+            vm.prank(randomCallers[i]);
+            vm.expectRevert("Unauthorized: Only syndicate owner");
+            launchedSyndicate.mint(bob, 10000 * 1e18);
+        }
+    }
+
+    function test_BatchMintToAddressByOwnerAndFeePaidToFeeRecipient() public {
+        address recipient1 = makeAddr("recipient1");
+        address recipient2 = makeAddr("recipient2");
+        address recipient3 = makeAddr("recipient3");
+        address recipient4 = makeAddr("recipient4");
+
+        uint256 amount1 = 10000 * 1e18;
+        uint256 amount2 = 12000 * 1e18;
+        uint256 amount3 = 14000 * 1e18;
+        uint256 amount4 = 18000 * 1e18;
+
+        uint256 totalMintAmount = (amount1 + amount2 + amount3 + amount4);
+        uint256 expectedMintFees = (amount1 + amount2 + amount3 + amount4) * FEE / 10000;
+        uint256 netMintAmount = (totalMintAmount - expectedMintFees);
+
+        _registerDeployer();
+        address samzodSyndicate = _launchSyndicateToken();
+        launchedSyndicate = SyndicateTokenV1(payable(samzodSyndicate));
+
+        uint256 preMintSupply = launchedSyndicate.totalSupply();
+        uint256 preBatchFees = launchedSyndicate.balanceOf(owner);
+        console2.log("Pre-Batch fees to ecosystem owner are: ", preBatchFees);
+
+        address[] memory recipients = new address[](4);
+        recipients[0] = recipient1;
+        recipients[1] = recipient2;
+        recipients[2] = recipient3;
+        recipients[3] = recipient4;
+
+        uint256[] memory amounts = new uint256[](4);
+        amounts[0] = amount1;
+        amounts[1] = amount2;
+        amounts[2] = amount3;
+        amounts[3] = amount4;
+
+        vm.prank(tbaAddressForSamzod);
+
+        launchedSyndicate.batchMint(recipients, amounts);
+        uint256 balance1 = launchedSyndicate.balanceOf(recipient1);
+        uint256 balance2 = launchedSyndicate.balanceOf(recipient2);
+        uint256 balance3 = launchedSyndicate.balanceOf(recipient3);
+        uint256 balance4 = launchedSyndicate.balanceOf(recipient4);
+        uint256 balanceFees = launchedSyndicate.balanceOf(owner);
+        uint256 balanceSamzod = launchedSyndicate.balanceOf(tbaAddressForSamzod);
+        uint256 totalSamzodSupply = launchedSyndicate.totalSupply();
+
+        console2.log("Recipient 1 balance is: ", balance1);
+        console2.log("Recipient 2 balance is: ", balance2);
+        console2.log("Recipient 3 balance is: ", balance3);
+        console2.log("Recipient 4 balance is: ", balance4);
+        console2.log("Expected batch mint fees are: ", expectedMintFees);
+        console2.log("Fee Recipient Balance is: ", balanceFees);
+
+        assertEq(
+            totalSamzodSupply,
+            (balance1 + balance2 + balance3 + balance4 + balanceFees + balanceSamzod),
+            "Total Supply not matching expected supply based on balances"
+        );
+        assertEq(
+            totalSamzodSupply,
+            (netMintAmount + expectedMintFees + preMintSupply),
+            "Total supply not matching expected supply based on mint broken down on fees, plus pre-mint supply"
+        );
+    }
+
+    function test_TurnOnCustomWhitelistByOwner() public {
+        _registerDeployer();
+        address samzodSyndicate = _launchSyndicateToken();
+        launchedSyndicate = SyndicateTokenV1(payable(samzodSyndicate));
+
+        vm.startPrank(tbaAddressForSamzod);
+        launchedSyndicate.toggleDefaultWhitelist(true);
+        assertEq(launchedSyndicate.usesDefaultWhitelist(), true, "Mismatch on Whitelist toggle to true");
+    }
+
+    function testFuzz_RevertOnTurnOnCustomWhitelistByNonOwner(address[] calldata randomCallers) public {
+        _registerDeployer();
+        address samzodSyndicate = _launchSyndicateToken();
+        launchedSyndicate = SyndicateTokenV1(payable(samzodSyndicate));
+
+        vm.assume(randomCallers.length > 0);
+        vm.assume(randomCallers.length <= 256);
+
+        for (uint256 i = 0; i < randomCallers.length; i++) {
+            if (randomCallers[i] == address(0) || randomCallers[i] == owner) {
+                continue;
+            }
+            vm.startPrank(randomCallers[i]);
+            vm.expectRevert();
+            launchedSyndicate.toggleDefaultWhitelist(true);
+            assertEq(
+                launchedSyndicate.usesDefaultWhitelist(), false, "Non-owner managed to change default whitelist flag"
+            );
+        }
+    }
+
+    function test_TurnOffCustomWhitelistByOwner() public {
+        _registerDeployer();
+        address samzodSyndicate = _launchSyndicateToken();
+        launchedSyndicate = SyndicateTokenV1(payable(samzodSyndicate));
+
+        vm.startPrank(tbaAddressForSamzod);
+        launchedSyndicate.toggleDefaultWhitelist(true);
+        assertEq(launchedSyndicate.usesDefaultWhitelist(), true, "Mismatch on Whitelist toggle to true");
+        launchedSyndicate.toggleDefaultWhitelist(false);
+        assertEq(launchedSyndicate.usesDefaultWhitelist(), false, "Owner failed to toggle default whitelist");
+    }
+
+    function testFuzz_RevertOnTurnOffCustomWhitelistByNonOwner(address[] calldata randomCallers) public {
+        _registerDeployer();
+        address samzodSyndicate = _launchSyndicateToken();
+        launchedSyndicate = SyndicateTokenV1(payable(samzodSyndicate));
+
+        vm.assume(randomCallers.length > 0);
+        vm.assume(randomCallers.length <= 256);
+
+        vm.startPrank(tbaAddressForSamzod);
+        launchedSyndicate.toggleDefaultWhitelist(true);
+        assertEq(launchedSyndicate.usesDefaultWhitelist(), true, "Mismatch on Whitelist toggle to true");
+        vm.stopPrank();
+
+        for (uint256 i = 0; i < randomCallers.length; i++) {
+            if (randomCallers[i] == address(0) || randomCallers[i] == owner) {
+                continue;
+            }
+            vm.startPrank(randomCallers[i]);
+            vm.expectRevert();
+            launchedSyndicate.toggleDefaultWhitelist(false);
+            assertEq(
+                launchedSyndicate.usesDefaultWhitelist(), true, "Non-owner managed to change default whitelist flag"
+            );
+        }
+    }
+
+    function test_FreeMintViaCustomWhitelistByPermissionedAddress() public {
+        _registerDeployer();
+        permissionedContract = makeAddr("permissionedContract");
+        vm.prank(owner);
+        deployerV1.addPermissionedContract(permissionedContract);
+        address samzodSyndicate = _launchSyndicateToken();
+        launchedSyndicate = SyndicateTokenV1(payable(samzodSyndicate));
+
+        vm.prank(tbaAddressForSamzod);
+        launchedSyndicate.toggleDefaultWhitelist(true);
+        assertEq(launchedSyndicate.usesDefaultWhitelist(), true, "Mismatch on Whitelist toggle to true");
+
+        uint256 mintAmount = 2700 * 1e18;
+        vm.prank(permissionedContract);
+        launchedSyndicate.permissionedMint(bob, mintAmount);
+        uint256 bobsBalance = launchedSyndicate.balanceOf(bob);
+        assertEq(mintAmount, bobsBalance, "Expected Balance does not match mint amount");
+    }
+
+    function test_FreeBatchMintToAddressByPermissionedAddress() public {
+        // Create mint targets, amounts, and associated arrays
+        address recipient1 = makeAddr("recipient1");
+        address recipient2 = makeAddr("recipient2");
+        address recipient3 = makeAddr("recipient3");
+        address recipient4 = makeAddr("recipient4");
+
+        uint256 amount1 = 10000 * 1e18;
+        uint256 amount2 = 12000 * 1e18;
+        uint256 amount3 = 14000 * 1e18;
+        uint256 amount4 = 18000 * 1e18;
+
+        uint256 freeMintAmount = (amount1 + amount2 + amount3 + amount4);
+
+        address[] memory recipients = new address[](4);
+        recipients[0] = recipient1;
+        recipients[1] = recipient2;
+        recipients[2] = recipient3;
+        recipients[3] = recipient4;
+
+        uint256[] memory amounts = new uint256[](4);
+        amounts[0] = amount1;
+        amounts[1] = amount2;
+        amounts[2] = amount3;
+        amounts[3] = amount4;
+
+        // Set up the contract state
+        _registerDeployer();
+        permissionedContract = makeAddr("permissionedContract");
+        vm.prank(owner);
+        deployerV1.addPermissionedContract(permissionedContract);
+        address samzodSyndicate = _launchSyndicateToken();
+        launchedSyndicate = SyndicateTokenV1(payable(samzodSyndicate));
+
+        vm.prank(tbaAddressForSamzod);
+        launchedSyndicate.toggleDefaultWhitelist(true);
+
+        uint256 preMintSupply = launchedSyndicate.totalSupply();
+        uint256 preBatchFees = launchedSyndicate.balanceOf(owner);
+        console2.log("Pre-Batch fees to ecosystem owner are: ", preBatchFees);
+
+        // Run core functionality
+        vm.prank(permissionedContract);
+        launchedSyndicate.permissionedBatchMint(recipients, amounts);
+
+        // Get outputs
+        uint256 balance1 = launchedSyndicate.balanceOf(recipient1);
+        uint256 balance2 = launchedSyndicate.balanceOf(recipient2);
+        uint256 balance3 = launchedSyndicate.balanceOf(recipient3);
+        uint256 balance4 = launchedSyndicate.balanceOf(recipient4);
+        uint256 balanceFees = launchedSyndicate.balanceOf(owner);
+        uint256 balanceSamzod = launchedSyndicate.balanceOf(tbaAddressForSamzod);
+        uint256 totalSamzodSupply = launchedSyndicate.totalSupply();
+
+        console2.log("Recipient 1 balance is: ", balance1);
+        console2.log("Recipient 2 balance is: ", balance2);
+        console2.log("Recipient 3 balance is: ", balance3);
+        console2.log("Recipient 4 balance is: ", balance4);
+        console2.log("Fee Recipient Balance is: ", balanceFees);
+
+        assertEq(
+            totalSamzodSupply,
+            (balance1 + balance2 + balance3 + balance4 + balanceFees + balanceSamzod),
+            "Total Supply not matching expected supply based on balances"
+        );
+        assertEq(
+            totalSamzodSupply,
+            (balance1 + balance2 + balance3 + balance4 + preMintSupply),
+            "Total supply not matching expected supply based on mint broken down on fees, plus pre-mint supply"
+        );
+        assertEq(preBatchFees, balanceFees, "Pre and post batch fee recipient balance should match");
+    }
+
+    function test_MintByPermissionedAddressWhenOwnerMintableIsFalse() public {
+        _registerDeployer();
+        permissionedContract = makeAddr("permissionedContract");
+        vm.prank(owner);
+        deployerV1.addPermissionedContract(permissionedContract);
+        address samzodSyndicate = _launchSyndicateToken();
+        launchedSyndicate = SyndicateTokenV1(payable(samzodSyndicate));
+
+        vm.startPrank(tbaAddressForSamzod);
+        launchedSyndicate.toggleDefaultWhitelist(true);
+        assertEq(launchedSyndicate.usesDefaultWhitelist(), true, "Mismatch on Whitelist toggle to true");
+        launchedSyndicate.renounceMintingRights();
+        assertEq(
+            launchedSyndicate.isOwnerMintable(),
+            false,
+            "Remains ownerMintable after attempting to renounce minting rights"
+        );
+        vm.stopPrank();
+
+        uint256 mintAmount = 2700 * 1e18;
+        vm.prank(permissionedContract);
+        launchedSyndicate.permissionedMint(bob, mintAmount);
+        uint256 bobsBalance = launchedSyndicate.balanceOf(bob);
+        console2.log("Bob's account balance is now: ", bobsBalance);
+        assertEq(mintAmount, bobsBalance, "Expected Balance does not match mint amount");
+    }
+
+    function test_RevertOnMintByOwnerWhenOwnerMintableIsFalse() public {
+        _registerDeployer();
+        address samzodSyndicate = _launchSyndicateToken();
+        launchedSyndicate = SyndicateTokenV1(payable(samzodSyndicate));
+
+        vm.startPrank(tbaAddressForSamzod);
+        launchedSyndicate.renounceMintingRights();
+        assertEq(
+            launchedSyndicate.isOwnerMintable(),
+            false,
+            "Remains ownerMintable after attempting to renounce minting rights"
+        );
+        uint256 mintAmount = 2700 * 1e18;
+        vm.expectRevert("Unauthorized: Owner does not have minting rights");
+        launchedSyndicate.mint(bob, mintAmount);
+    }
+    // TODO I need to build out the zod test cases to account for the AZP tokenId of 0
+
+    function test_DissolveSyndicateViaTokenByOwner() public {
+        _registerDeployer();
+        address samzodSyndicate = _launchSyndicateToken();
+        launchedSyndicate = SyndicateTokenV1(payable(samzodSyndicate));
+
+        vm.prank(tbaAddressForSamzod);
+        launchedSyndicate.dissolveSyndicate();
+
+        // check registry
+        assertEq(
+            registry.getSyndicateTokenExistsUsingAzimuthPoint(1024),
+            false,
+            "Registry failed to clear _syndicate mapping"
+        );
+        assertEq(
+            registry.getSyndicateTokenExistsUsingAddress(samzodSyndicate),
+            false,
+            "Registry failed to clear _addressToAzimuthPoint mapping"
+        );
+        // mapping by token contract and AZP
+        // check deployer by _deployedSyndicates
+
+        assertEq(deployerV1.isRelatedSyndicate(samzodSyndicate), false, "Deployer failed to clear mapping");
+    }
+
+    function testFuzz_RevertOnDissolveSyndicateViaTokenByNotSyndicateOwner(address[] calldata randomCallers) public {
         _registerDeployer();
         address samzodSyndicate = _launchSyndicateToken();
         launchedSyndicate = SyndicateTokenV1(payable(samzodSyndicate));
@@ -904,13 +1161,11 @@ contract SyndicateEcosystemTest is Test {
         }
     }
 
-    // TODO test_NewSyndicateAfterDissolutionByUrbitTba
-    // TODO testFail_NewSyndicateAfterDissolutionByNotUrbitTBA
-
     // TODO test_FeeCalculationForBatchMintByOwner
     // TODO test_FeeCalculationForMintByOwner
 
     // TODO tests for ownerMintable
+    // TODO testFail_MintOverMaxSupplyByOwner
     // TODO test for setting token supply cap
 
     // Admin checks
