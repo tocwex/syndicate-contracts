@@ -44,7 +44,11 @@ interface ISyndicateRegistry {
     /// @param syndicateDeployer The address of the newly registered Deployer
     /// @param deployerVersion The version number of the deployer
     /// @param isActive The registration eligibility of the deployer, should be true on initial registration
-    event DeployerRegistered(address indexed syndicateDeployer, uint64 deployerVersion, bool isActive);
+    event DeployerRegistered(
+        address indexed syndicateDeployer,
+        uint64 deployerVersion,
+        bool isActive
+    );
 
     /// @notice emitted when a deployer is deactivated on the registry
     /// @dev Deativation of a deployer sets isActive to false, but retains data in contract storage for reference purposes
@@ -65,12 +69,18 @@ interface ISyndicateRegistry {
     /// @param syndicateToken The contract address of the newly registered token
     /// @param owner the ownership address of the newly registered token
     event SyndicateRegistered(
-        address indexed deployerAddress, address indexed syndicateToken, address indexed owner, uint256 azimuthPoint
+        address indexed deployerAddress,
+        address indexed syndicateToken,
+        address indexed owner,
+        uint256 azimuthPoint
     );
 
     // TODO add Natspec
     event SyndicateDissolved(
-        address indexed deployerAddress, address indexed syndicateToken, address indexed owner, uint256 azimuthPoint
+        address indexed deployerAddress,
+        address indexed syndicateToken,
+        address indexed owner,
+        uint256 azimuthPoint
     );
 
     /// @notice emitted when a syndicate token owner is successfully updated
@@ -78,7 +88,11 @@ interface ISyndicateRegistry {
     /// @param deployerAddress The address of the deployer associated with the updated syndicate token
     /// @param syndicateToken The token contract address which just had it's owner updated
     /// @param owner The address of the new owner of the token contract
-    event SyndicateOwnerUpdated(address indexed deployerAddress, address indexed syndicateToken, address indexed owner);
+    event SyndicateOwnerUpdated(
+        address indexed deployerAddress,
+        address indexed syndicateToken,
+        address indexed owner
+    );
 
     //// Ownership Events
     /// @notice emitted when an ownership transfer is proposed
@@ -114,7 +128,11 @@ interface ISyndicateRegistry {
     event ExternalCallAttempted(address indexed target, bytes data);
 
     // TODO add natspec
-    event ExternalCallExecuted(address indexed target, bytes data, bool success);
+    event ExternalCallExecuted(
+        address indexed target,
+        bytes data,
+        bool success
+    );
 
     // Errors
     // error Unauthorized();
@@ -126,45 +144,58 @@ interface ISyndicateRegistry {
     /// @dev should be restricted to onlyOwner
     /// @param syndicateDeployerData See {SyndicateDeployerData} for struct documentation
     /// @return success The confirmation that the deployer has been added to the registry
-    function registerDeployer(SyndicateDeployerData calldata syndicateDeployerData) external returns (bool success);
+    function registerDeployer(
+        SyndicateDeployerData calldata syndicateDeployerData
+    ) external returns (bool success);
 
     /// @notice Called to deactivate deployer in the Syndicate Registry
     /// @dev Function should be restricted to onlyOwner
     /// @param syndicateDeployerData See {SyndicateDeployerData} for struct documentation
     /// @return success The confirmation that the deployer has been deactivated in the registry
-    function deactivateDeployer(SyndicateDeployerData calldata syndicateDeployerData) external returns (bool success);
+    function deactivateDeployer(
+        SyndicateDeployerData calldata syndicateDeployerData
+    ) external returns (bool success);
 
     /// @notice Called to reactivate deployer in the Syndicate Registry
     /// @dev Function should be restricted to onlyOwner
     /// @param syndicateDeployerData See {SyndicateDeployerData} for struct documentation
     /// @return success The confirmation that the deployer has been reactivated in the registry
-    function reactivateDeployer(SyndicateDeployerData calldata syndicateDeployerData) external returns (bool success);
+    function reactivateDeployer(
+        SyndicateDeployerData calldata syndicateDeployerData
+    ) external returns (bool success);
 
     //// Syndicate registry functions
 
     /// @notice Called by an active Syndicate Deployer to launch a Syndicate Token
     /// @dev should only be callable by an active Syndicate Deployer, and the syndicate deployer MUST implement the check to ensure only a valid TBA may register a syndicate and create a mapping(uint256 => Syndicate) in the process.
     /// @param syndicate See {Syndicate} for struct documentation
-    function registerSyndicate(Syndicate calldata syndicate) external returns (bool success);
+    function registerSyndicate(
+        Syndicate calldata syndicate
+    ) external returns (bool success);
 
     // TODO add natspec
-    function dissolveSyndicate(Syndicate calldata syndicate) external returns (bool success);
+    function dissolveSyndicate(
+        Syndicate calldata syndicate
+    ) external returns (bool success);
 
     /// @notice Called by an active syndicate deployer to update the owner of a Syndicate token contract
     /// @dev should only be callable by an active Syndicate Deployer, and the syndicate deployer MUST implement the check to ensure only a valid TBA may be made the owner of a given syndicate, updating the mapping(uint256 => Syndicate) in the process.
     /// @param syndicateToken The address of the syndicate token contract
     /// @param newOwner The address of the proposed new owner of the syndicateToken contact
     /// @return success Boolean for transaction completion
-    function updateSyndicateOwnerRegistration(address syndicateToken, address newOwner)
-        external
-        returns (bool success);
+    function updateSyndicateOwnerRegistration(
+        address syndicateToken,
+        address newOwner
+    ) external returns (bool success);
 
     //// Ownership transfer functions
 
     /// @notice called calldata by Syndicate Registry owner to propose new ownership keys
     /// @dev should only be callable by current contract owner
     /// @param proposedOwner The address of the proposed new owner
-    function proposeNewOwner(address proposedOwner) external returns (bool success);
+    function proposeNewOwner(
+        address proposedOwner
+    ) external returns (bool success);
 
     /// @notice Called by pendingOwner to accept ownership of Syndicate Registry contract
     /// @dev should only be callable by pendingOwner
@@ -187,7 +218,10 @@ interface ISyndicateRegistry {
     function renounceOwnership() external returns (bool success);
 
     // TODO add natspec
-    function executeCall(address target, bytes calldata data) external returns (bool success, bytes memory result);
+    function executeCall(
+        address target,
+        bytes calldata data
+    ) external returns (bool success, bytes memory result);
 
     /// @notice Getter fuction for _owner private state variable
     /// @return owner Ownership address of Registry contract which has the rights to add new deployers to the registry
@@ -200,90 +234,92 @@ interface ISyndicateRegistry {
     /// @notice Getter function to check if an address is a registered deployer
     /// @dev Existence of deployer does not guarantee that the deployer is active; call getDeployerData for that state.
     /// @return isRegistered Boolean indicating that the address is including in the registry as a deployer
-    function isRegisteredDeployer(address checkAddress) external view returns (bool isRegistered);
+    function isRegisteredDeployer(
+        address checkAddress
+    ) external view returns (bool isRegistered);
 
     /// @notice Getter function to check if deployer is currently active
     /// @dev Deployer must be active in order to allow launching of new syndicate tokens
     /// @param checkAddress The address of the deployer for which you want to check active state
     /// @return isActive The state of the deployer
-    function isActiveDeployer(address checkAddress) external view returns (bool isActive);
+    function isActiveDeployer(
+        address checkAddress
+    ) external view returns (bool isActive);
 
     /// @notice Getter function to retrieve an array of addresses for all registered deployers
     /// @return syndicateDeployers Array of addresses which are valid Deployer contracts, which may or may not be active.
-    function getDeployers() external view returns (address[] memory syndicateDeployers);
+    function getDeployers()
+        external
+        view
+        returns (address[] memory syndicateDeployers);
 
     /// @notice Getter function to retrieve the contents of a SyndicateDeployerData struct for the given address
     /// @param deployerAddress The address of a deployer contract in the syndicateDeployers array
     /// @return syndicateDeployerData A struct containing {SyndicateDeployerData} data
-    function getDeployerData(address deployerAddress)
+    function getDeployerData(
+        address deployerAddress
+    )
         external
         view
         returns (SyndicateDeployerData memory syndicateDeployerData);
 
-    function getSyndicateTokenExistsUsingAzimuthPoint(uint256 azimuthPoint)
-        external
-        view
-        returns (bool syndicateExists);
+    function getSyndicateTokenExistsUsingAzimuthPoint(
+        uint256 azimuthPoint
+    ) external view returns (bool syndicateExists);
 
-    function getSyndicateTokenAddressUsingAzimuthPoint(uint256 azimuthPoint)
-        external
-        view
-        returns (address syndicateAddress);
+    function getSyndicateTokenAddressUsingAzimuthPoint(
+        uint256 azimuthPoint
+    ) external view returns (address syndicateAddress);
 
-    function getSyndicateTokenOwnerAddressUsingAzimuthPoint(uint256 azimuthPoint)
-        external
-        view
-        returns (address syndicateOwner);
+    function getSyndicateTokenOwnerAddressUsingAzimuthPoint(
+        uint256 azimuthPoint
+    ) external view returns (address syndicateOwner);
 
-    function getSyndicateTokenDeployerAddressUsingAzimuthPoint(uint256 azimuthPoint)
-        external
-        view
-        returns (address syndicateDeployerAddress);
+    function getSyndicateTokenDeployerAddressUsingAzimuthPoint(
+        uint256 azimuthPoint
+    ) external view returns (address syndicateDeployerAddress);
 
-    function getSyndicateTokenDeployerVersionUsingAzimuthPoint(uint256 azimuthPoint)
-        external
-        view
-        returns (uint64 syndicateDeployerVersion);
+    function getSyndicateTokenDeployerVersionUsingAzimuthPoint(
+        uint256 azimuthPoint
+    ) external view returns (uint64 syndicateDeployerVersion);
 
-    function getSyndicateTokenDeployerIsActiveUsingAzimuthPoint(uint256 azimuthPoint)
-        external
-        view
-        returns (bool syndicateDeployerIsActive);
+    function getSyndicateTokenDeployerIsActiveUsingAzimuthPoint(
+        uint256 azimuthPoint
+    ) external view returns (bool syndicateDeployerIsActive);
 
-    function getSyndicateTokenLaunchTimeUsingAzimuthPoint(uint256 azimuthPoint)
-        external
-        view
-        returns (uint256 syndicateLaunchTime);
+    function getSyndicateTokenLaunchTimeUsingAzimuthPoint(
+        uint256 azimuthPoint
+    ) external view returns (uint256 syndicateLaunchTime);
 
-    function getSyndicateTokenExistsUsingAddress(address checkAddress) external view returns (bool syndicateExists);
+    function getSyndicateTokenExistsUsingAddress(
+        address checkAddress
+    ) external view returns (bool syndicateExists);
 
-    function getSyndicateAzimuthPointUsingAddress(address checkAddress)
-        external
-        view
-        returns (address syndicateAddress);
+    function getSyndicateAzimuthPointUsingAddress(
+        address checkAddress
+    ) external view returns (uint256 azimuthPoint);
 
-    function getSyndicateTokenOwnerAddressUsingAddress(address checkAddress)
-        external
-        view
-        returns (address syndicateOwner);
+    function getSyndicateUsingTokenAddress(
+        address checkAddress
+    ) external view returns (Syndicate memory someSyndicate);
 
-    function getSyndicateTokenDeployerAddressUsingAddress(address checkAddress)
-        external
-        view
-        returns (address syndicateDeployerAddress);
+    function getSyndicateTokenOwnerAddressUsingAddress(
+        address checkAddress
+    ) external view returns (address syndicateOwner);
 
-    function getSyndicateTokenDeployerVersionUsingAddress(address checkAddress)
-        external
-        view
-        returns (uint64 syndicateDeployerVersion);
+    function getSyndicateTokenDeployerAddressUsingAddress(
+        address checkAddress
+    ) external view returns (address syndicateDeployerAddress);
 
-    function getSyndicateTokenDeployerIsActiveUsingAddress(address checkAddress)
-        external
-        view
-        returns (bool syndicateDeployerIsActive);
+    function getSyndicateTokenDeployerVersionUsingAddress(
+        address checkAddress
+    ) external view returns (uint64 syndicateDeployerVersion);
 
-    function getSyndicateTokenLaunchTimeUsingAddress(address checkAddress)
-        external
-        view
-        returns (uint256 syndicateLaunchTime);
+    function getSyndicateTokenDeployerIsActiveUsingAddress(
+        address checkAddress
+    ) external view returns (bool syndicateDeployerIsActive);
+
+    function getSyndicateTokenLaunchTimeUsingAddress(
+        address checkAddress
+    ) external view returns (uint256 syndicateLaunchTime);
 }
