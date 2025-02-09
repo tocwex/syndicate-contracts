@@ -43,10 +43,11 @@ contract SyndicateDeployerV1 is ISyndicateDeployerV1 {
     }
 
     modifier onlyActive() {
-        ISyndicateRegistry.SyndicateDeployerData memory syndicateDeployerData =
-            i_registry.getDeployerData(address(this));
-        require(syndicateDeployerData.isActive, "Inactive Deployer cannot launch Syndicate Token");
+        bool deployerActive = _getDeployerStatus();
+        require(deployerActive, "Inactive Deployer cannot launch Syndicate Token");
         _;
+        deployerActive = _getDeployerStatus();
+        require(deployerActive, "Deployer deactivated during launch attempt");
     }
 
     modifier onlyUnlaunched(uint256 azimuthPoint) {
@@ -203,6 +204,11 @@ contract SyndicateDeployerV1 is ISyndicateDeployerV1 {
         return _fee;
     }
 
+    function getDeployerStatus() external view returns (bool isActive) {
+        return _getDeployerStatus();
+    }
+
+    }
     // TODO add natspec
     function checkIfPermissioned(address contractAddress) external view returns (bool isPermissioned) {
         return _permissionedContracts[contractAddress];
@@ -357,5 +363,11 @@ contract SyndicateDeployerV1 is ISyndicateDeployerV1 {
         emit ExternalCallExecuted(target, data, success);
 
         return (success, result);
+    }
+
+    function _getDeployerStatus() internal view returns (bool isActive) {
+        ISyndicateRegistry.SyndicateDeployerData memory syndicateDeployerData =
+            i_registry.getDeployerData(address(this));
+        return syndicateDeployerData.isActive;
     }
 }

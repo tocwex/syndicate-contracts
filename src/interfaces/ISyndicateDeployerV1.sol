@@ -157,6 +157,9 @@ interface ISyndicateDeployerV1 {
     function getFee() external view returns (uint256 fee);
 
     // TODO add natspec
+    function getDeployerStatus() external view returns (bool isActive);
+
+    // TODO add natspec
     function checkIfPermissioned(address contractAddress) external view returns (bool isPermissioned);
 
     // TODO add natspec

@@ -52,10 +52,22 @@ contract SyndicateTokenV1 is ERC20, ISyndicateTokenV1 {
         string memory name,
         string memory symbol
     ) ERC20(name, symbol) {
-        require(msg.sender == deployerAddress, "Syndicate Tokens must be deployed from the Syndicate factory contract");
-        require(protocolFee <= 10000, "Protocol Fee cannot be greater than 100%");
-        require(isValidName(name), "Invalid name: Must be <50 approved characters");
-        require(isValidSymbol(symbol), "Invalid symbol: Must be <16 approved characters");
+        require(
+            msg.sender == deployerAddress,
+            "Syndicate Tokens must be deployed from the Syndicate factory contract"
+        );
+        require(
+            protocolFee <= 10000,
+            "Protocol Fee cannot be greater than 100%"
+        );
+        require(
+            isValidName(name),
+            "Invalid name: Must be <50 approved characters"
+        );
+        require(
+            isValidSymbol(symbol),
+            "Invalid symbol: Must be <16 approved characters"
+        );
 
         i_syndicateDeployer = ISyndicateDeployerV1(deployerAddress);
         _owner = owner;
@@ -81,10 +93,14 @@ contract SyndicateTokenV1 is ERC20, ISyndicateTokenV1 {
 
     modifier onlyPermissionedContract() {
         require(
-            i_syndicateDeployer.checkIfPermissioned(msg.sender), "Unauthorized: Not a permissioned contract address"
+            i_syndicateDeployer.checkIfPermissioned(msg.sender),
+            "Unauthorized: Not a permissioned contract address"
         );
         if (!_defaultWhitelist) {
-            require(_whitelistedContracts[msg.sender], "Unauthorized: Not in Syndicate custom whitelist");
+            require(
+                _whitelistedContracts[msg.sender],
+                "Unauthorized: Not in Syndicate custom whitelist"
+            );
         }
         _;
     }
@@ -98,7 +114,10 @@ contract SyndicateTokenV1 is ERC20, ISyndicateTokenV1 {
     }
 
     modifier onlyOwnerMintable() {
-        require(_ownerMintable, "Unauthorized: Owner does not have minting rights");
+        require(
+            _ownerMintable,
+            "Unauthorized: Owner does not have minting rights"
+        );
         _;
     }
 
@@ -115,30 +134,39 @@ contract SyndicateTokenV1 is ERC20, ISyndicateTokenV1 {
     }
 
     //// external
-    function mint(address account, uint256 amount) external onlyOwner onlyOwnerMintable {
+    function mint(
+        address account,
+        uint256 amount
+    ) external onlyOwner onlyOwnerMintable {
         return _mint(account, amount);
     }
 
-    function permissionedMint(address account, uint256 amount) external onlyPermissionedContract {
+    function permissionedMint(
+        address account,
+        uint256 amount
+    ) external onlyPermissionedContract {
         return _permissionedMint(account, amount);
     }
 
-    function batchMint(address[] calldata account, uint256[] calldata amount) external onlyOwner onlyOwnerMintable {
+    function batchMint(
+        address[] calldata account,
+        uint256[] calldata amount
+    ) external onlyOwner onlyOwnerMintable {
         return _batchMint(account, amount);
     }
 
-    function permissionedBatchMint(address[] calldata account, uint256[] calldata amount)
-        external
-        onlyPermissionedContract
-    {
+    function permissionedBatchMint(
+        address[] calldata account,
+        uint256[] calldata amount
+    ) external onlyPermissionedContract {
         return _permissionedBatchMint(account, amount);
     }
 
-    function updateOwnershipTba(address newOwner, address tbaImplementation, bytes32 salt)
-        external
-        onlyOwner
-        returns (bool success)
-    {
+    function updateOwnershipTba(
+        address newOwner,
+        address tbaImplementation,
+        bytes32 salt
+    ) external onlyOwner returns (bool success) {
         return _updateOwnershipTba(newOwner, tbaImplementation, salt);
     }
 
@@ -154,25 +182,38 @@ contract SyndicateTokenV1 is ERC20, ISyndicateTokenV1 {
         return _dissolveSyndicate();
     }
 
-    function addWhitelistedContract(address contractAddress) external onlyOwner returns (bool success) {
+    function addWhitelistedContract(
+        address contractAddress
+    ) external onlyOwner returns (bool success) {
         return _addWhitelistedContract(contractAddress);
     }
 
-    function removeWhitelistedContract(address contractAddress) external onlyOwner returns (bool success) {
+    function removeWhitelistedContract(
+        address contractAddress
+    ) external onlyOwner returns (bool success) {
         return _removeWhitelistedContract(contractAddress);
     }
 
-    function toggleDefaultWhitelist(bool state) external onlyOwner returns (bool success) {
+    function toggleDefaultWhitelist(
+        bool state
+    ) external onlyOwner returns (bool success) {
         return _toggleDefaultWhitelist(state);
     }
 
-    function reduceFee(uint256 newFee) external onlySyndicateEcosystemOwner returns (bool success) {
+    function reduceFee(
+        uint256 newFee
+    ) external onlySyndicateEcosystemOwner returns (bool success) {
         return _reduceFee(newFee);
     }
 
-    function setMaxSupply(uint256 setCap) external onlyOwner returns (bool success) {
+    function setMaxSupply(
+        uint256 setCap
+    ) external onlyOwner returns (bool success) {
         require(!_setCap, "Token max supply already set");
-        require(setCap >= totalSupply(), "Max supply must be greater than or equal to current total supply");
+        require(
+            setCap >= totalSupply(),
+            "Max supply must be greater than or equal to current total supply"
+        );
         return _setMaxSupply(setCap);
     }
 
@@ -216,7 +257,9 @@ contract SyndicateTokenV1 is ERC20, ISyndicateTokenV1 {
         usesDefault = _defaultWhitelist;
     }
 
-    function isWhitelistedContract(address contractAddress) external view returns (bool isWhitelisted) {
+    function isWhitelistedContract(
+        address contractAddress
+    ) external view returns (bool isWhitelisted) {
         isWhitelisted = _whitelistedContracts[contractAddress];
     }
 
@@ -226,7 +269,10 @@ contract SyndicateTokenV1 is ERC20, ISyndicateTokenV1 {
 
     //// internal
     function _mint(address account, uint256 amount) internal override {
-        require(totalSupply() + amount <= _maxSupply, "ERC20: Mint over maxSupply limit");
+        require(
+            totalSupply() + amount <= _maxSupply,
+            "ERC20: Mint over maxSupply limit"
+        );
         uint256 fee_ = (amount * _protocolFeeCurrent) / BASIS_POINTS;
         uint256 amount_ = amount - fee_;
 
@@ -238,11 +284,17 @@ contract SyndicateTokenV1 is ERC20, ISyndicateTokenV1 {
     }
 
     function _permissionedMint(address account, uint256 amount) internal {
-        require(totalSupply() + amount <= _maxSupply, "ERC20: Mint over maxSupply limit");
+        require(
+            totalSupply() + amount <= _maxSupply,
+            "ERC20: Mint over maxSupply limit"
+        );
         super._mint(account, amount);
     }
 
-    function _batchMint(address[] calldata account, uint256[] calldata amount) internal {
+    function _batchMint(
+        address[] calldata account,
+        uint256[] calldata amount
+    ) internal {
         require(account.length == amount.length, "Array length mismatch");
         require(account.length > 0, "Empty arrays");
 
@@ -256,18 +308,27 @@ contract SyndicateTokenV1 is ERC20, ISyndicateTokenV1 {
             _permissionedMint(account[i], amount[i] - fee);
         }
 
-        require(totalSupply() + totalAmount <= _maxSupply, "ERC20: Batch mint over maxSuply limit");
+        require(
+            totalSupply() + totalAmount <= _maxSupply,
+            "ERC20: Batch mint over maxSuply limit"
+        );
 
         if (totalFee > 0) {
             address feeRecipient = i_syndicateDeployer.getFeeRecipient();
             _permissionedMint(feeRecipient, totalFee);
-            emit BatchMintFeeIncurred({feeRecipient: feeRecipient, totalFees: totalFee});
+            emit BatchMintFeeIncurred({
+                feeRecipient: feeRecipient,
+                totalFees: totalFee
+            });
         } else if (_protocolFeeCurrent > 0) {
             require(totalFee > 0, "Invalid Fee Calculation");
         }
     }
 
-    function _permissionedBatchMint(address[] calldata account, uint256[] calldata amount) internal {
+    function _permissionedBatchMint(
+        address[] calldata account,
+        uint256[] calldata amount
+    ) internal {
         require(account.length == amount.length, "Array length mismatch");
         require(account.length > 0, "Empty arrays");
 
@@ -278,19 +339,27 @@ contract SyndicateTokenV1 is ERC20, ISyndicateTokenV1 {
             _permissionedMint(account[i], amount[i]);
         }
 
-        require(totalSupply() + totalAmount <= _maxSupply, "ERC20: Batch mint over maxSupply limit");
+        require(
+            totalSupply() + totalAmount <= _maxSupply,
+            "ERC20: Batch mint over maxSupply limit"
+        );
     }
 
-    function _updateOwnershipTba(address newOwner, address implementation, bytes32 salt)
-        internal
-        returns (bool success)
-    {
+    function _updateOwnershipTba(
+        address newOwner,
+        address implementation,
+        bytes32 salt
+    ) internal returns (bool success) {
         address oldOwner = _owner;
         _owner = newOwner;
         success = true;
 
-        bool registeryUpdated =
-            i_syndicateDeployer.registerTokenOwnerChange(newOwner, i_azimuthPoint, implementation, salt);
+        bool registeryUpdated = i_syndicateDeployer.registerTokenOwnerChange(
+            newOwner,
+            i_azimuthPoint,
+            implementation,
+            salt
+        );
         require(registeryUpdated, "Registry must have updated to proceed");
 
         emit OwnershipTbaUpdated({
@@ -322,7 +391,10 @@ contract SyndicateTokenV1 is ERC20, ISyndicateTokenV1 {
             emit TokenMaxSupplySet({maxSupply: _maxSupply});
         }
         success = true;
-        emit OwnershipRenounced({lastOwner: msg.sender, blockheight: block.number});
+        emit OwnershipRenounced({
+            lastOwner: msg.sender,
+            blockheight: block.number
+        });
         return success;
     }
 
@@ -330,37 +402,54 @@ contract SyndicateTokenV1 is ERC20, ISyndicateTokenV1 {
         require(_isCannonical, "Syndicate Token is already dissolved");
         _isCannonical = false;
 
-        success = i_syndicateDeployer.dissolveSyndicateInRegistry(i_azimuthPoint);
+        success = i_syndicateDeployer.dissolveSyndicateInRegistry(
+            i_azimuthPoint
+        );
 
         require(success, "Dissolution of syndicate failed");
         emit SyndicateDissolved(block.number);
         return success;
     }
 
-    function _addWhitelistedContract(address contractAddress) internal returns (bool success) {
+    function _addWhitelistedContract(
+        address contractAddress
+    ) internal returns (bool success) {
         _whitelistedContracts[contractAddress] = true;
         success = true;
         emit ContractAddedToWhitelist({contractAddress: contractAddress});
         return success;
     }
 
-    function _removeWhitelistedContract(address contractAddress) internal returns (bool success) {
+    function _removeWhitelistedContract(
+        address contractAddress
+    ) internal returns (bool success) {
         _whitelistedContracts[contractAddress] = false;
         success = true;
         emit contractRemovedFromWhitelist({contractAddress: contractAddress});
         return success;
     }
 
-    function _toggleDefaultWhitelist(bool state) internal returns (bool success) {
+    function _toggleDefaultWhitelist(
+        bool state
+    ) internal returns (bool success) {
         _defaultWhitelist = state;
         success = true;
-        emit ToggleDefaultWhitelist({tokenOwner: msg.sender, defaultsWhitelisted: state});
+        emit ToggleDefaultWhitelist({
+            tokenOwner: msg.sender,
+            defaultsWhitelisted: state
+        });
         return success;
     }
 
     function _reduceFee(uint256 newFee) internal returns (bool success) {
-        require(newFee < i_protocolFeeMax, "Unauthorized: New fee must be lower than max protocol fee");
-        require(newFee < _protocolFeeCurrent, "Unauthorized: New fee must be lower than current fee");
+        require(
+            newFee < i_protocolFeeMax,
+            "Unauthorized: New fee must be lower than max protocol fee"
+        );
+        require(
+            newFee < _protocolFeeCurrent,
+            "Unauthorized: New fee must be lower than current fee"
+        );
         _protocolFeeCurrent = newFee;
         success = true;
 
@@ -379,14 +468,14 @@ contract SyndicateTokenV1 is ERC20, ISyndicateTokenV1 {
 
     function isValidName(string memory name) internal pure returns (bool) {
         bytes memory b = bytes(name);
-        // Optionally, enforce a minimum or maximum length:
+        // Allow up to 50 characters, while requiring at least 1
         if (b.length == 0 || b.length > 50) return false;
         for (uint256 i = 0; i < b.length; i++) {
             bytes1 char = b[i];
             bool isDigit = (char >= 0x30 && char <= 0x39); // 0-9
             bool isUppercase = (char >= 0x41 && char <= 0x5A); // Uppercase letters
             bool isLowercase = (char >= 0x61 && char <= 0x7A); // Lowercase letters
-            bool isSpecial = (char == 0x20 || char == 0x2D || char == 0x7E); // '-' or '_' or '~'
+            bool isSpecial = (char == 0x20 || char == 0x2D || char == 0x7E); // '-' or ' ' or '~'
             if (!(isDigit || isUppercase || isLowercase || isSpecial)) {
                 return false;
             }
