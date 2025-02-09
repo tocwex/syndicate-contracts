@@ -72,6 +72,7 @@ contract SyndicateDeployerV1 is ISyndicateDeployerV1 {
     }
 
     constructor(address registryAddress, address azimuthContract, uint256 fee) {
+        require(fee <= 10000, "Protocol Fee may not be greater than 100%");
         i_registry = ISyndicateRegistry(registryAddress);
         i_azimuthContract = IERC721(azimuthContract);
         _feeRecipient = msg.sender;
