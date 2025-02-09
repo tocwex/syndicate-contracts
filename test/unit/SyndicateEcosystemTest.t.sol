@@ -1161,14 +1161,198 @@ contract SyndicateEcosystemTest is Test {
         }
     }
 
-    // TODO test_FeeCalculationForBatchMintByOwner
-    // TODO test_FeeCalculationForMintByOwner
+    function test_MintThenChangeProtocolFeeToZeroThenFreeMintByOwner() public {
+        _registerDeployer();
+        address samzodSyndicate = _launchSyndicateToken();
+        launchedSyndicate = SyndicateTokenV1(payable(samzodSyndicate));
 
-    // TODO tests for ownerMintable
-    // TODO testFail_MintOverMaxSupplyByOwner
-    // TODO test for setting token supply cap
+        uint256 mintAmount = 10000 * 1e18;
+        uint256 protocolFee = launchedSyndicate.getProtocolFee();
+        address feeRecipient = launchedSyndicate.getFeeRecipient();
+        uint256 startingFeeBalance = launchedSyndicate.balanceOf(feeRecipient);
+        uint256 expectedFees = (mintAmount * protocolFee) / 10000;
+        uint256 expectedBobsBalance = mintAmount - expectedFees;
 
+        vm.prank(tbaAddressForSamzod);
+        launchedSyndicate.mint(bob, mintAmount);
+
+        uint256 bobsBalance = launchedSyndicate.balanceOf(bob);
+        assertEq(expectedBobsBalance, bobsBalance, "Bob's Balance mismatch");
+        console2.log("Bobs expected balance: ", expectedBobsBalance);
+        console2.log("Bobs actual balance: ", bobsBalance);
+
+        uint256 feeBalance = launchedSyndicate.balanceOf(feeRecipient);
+        assertEq(feeBalance, expectedFees + startingFeeBalance, "Fee Recipient's Balance mismatch");
+        console2.log("Fee Recipient expected balance: ", expectedFees + startingFeeBalance);
+        console2.log("Fee Recipient actual balance: ", feeBalance);
+
+        vm.prank(owner);
+        launchedSyndicate.reduceFee(0);
+
+        uint256 newFeeRate = launchedSyndicate.getProtocolFee();
+        console2.log("New fee rate is: ", newFeeRate);
+
+        vm.prank(tbaAddressForSamzod);
+        launchedSyndicate.mint(bob, mintAmount);
+
+        uint256 expectedBobsNewBalance = bobsBalance + mintAmount;
+        uint256 bobsNewBalance = launchedSyndicate.balanceOf(bob);
+        assertEq(expectedBobsNewBalance, bobsNewBalance, "Bob's Balance mismatch");
+        console2.log("Bobs expected new balance: ", expectedBobsBalance);
+        console2.log("Bobs actual new balance: ", bobsBalance);
+
+        uint256 feeNewBalance = launchedSyndicate.balanceOf(feeRecipient);
+        assertEq(feeBalance, expectedFees + startingFeeBalance, "Fee Recipient's Balance unexpectedly changed");
+        console2.log("Fee Recipient expected new balance: ", expectedFees + startingFeeBalance);
+        console2.log("Fee Recipient actual new balance: ", feeBalance);
+    }
+
+    function testFuzz_RevertOnAttemptToRaiseProtocolFeeByEcosystemOwner(uint256[] calldata randomAmount) public {
+        _registerDeployer();
+        address samzodSyndicate = _launchSyndicateToken();
+        launchedSyndicate = SyndicateTokenV1(payable(samzodSyndicate));
+        uint256 currentProtocolFee = launchedSyndicate.getProtocolFee();
+        console2.log("Current protocol fee is: ", currentProtocolFee);
+
+        vm.assume(randomAmount.length > 0);
+        vm.assume(randomAmount.length <= 256);
+        for (uint256 i = 0; i < randomAmount.length; i++) {
+            if (randomAmount[i] <= currentProtocolFee) {
+                continue;
+            }
+            uint256 attemptedNewFee = randomAmount[i];
+            vm.prank(owner);
+            vm.expectRevert("Unauthorized: New fee must be lower than max protocol fee");
+            launchedSyndicate.reduceFee(attemptedNewFee);
+        }
+    }
+
+    function test_RevertOnMintByOwnerOverSupplyCap() public {
+        _registerDeployer();
+        tbaAddressForSamzod = _getTbaAddress(address(tbaImplementation), 1024);
+        vm.prank(tbaAddressForSamzod);
+        address syndicateTokenV1 = deployerV1.deploySyndicate(
+            address(tbaImplementation),
+            SALT,
+            DEFAULT_MINT,
+            type(uint256).max,
+            1024,
+            "~samzod-samzod Long-name approved Syndicate",
+            "~UNCAPPED"
+        );
+        launchedSyndicate = SyndicateTokenV1(payable(syndicateTokenV1));
+
+        console2.log("Syndicate Contract Launched at: ", address(syndicateTokenV1));
+        console2.log("syndicateOwner: ", launchedSyndicate.getOwner());
+        console2.log("initialSupply: ", launchedSyndicate.totalSupply());
+        console2.log("maxSupply: ", launchedSyndicate.getMaxSupply());
+        console2.log("azimiuthPoint: ", launchedSyndicate.getAzimuthPoint());
+        console2.log("name: ", launchedSyndicate.name());
+        console2.log("symbol: ", launchedSyndicate.symbol());
+        assertTrue(address(syndicateTokenV1).code.length > 0, "Syndicate Token not deployed");
+
+        uint256 newSupplyCap = 1000000 * 1e18;
+        uint256 failingMintAmount = 10000 * 1e18;
+
+        vm.startPrank(tbaAddressForSamzod);
+        launchedSyndicate.setMaxSupply(newSupplyCap);
+        bool isCapped = launchedSyndicate.isSupplyCapped();
+        uint256 actualSupplyCap = launchedSyndicate.getMaxSupply();
+        assertEq(actualSupplyCap, newSupplyCap, "Supply cap not set to provided value");
+
+        console2.log("Supply Cap is", isCapped);
+        assertTrue(isCapped, "Supply is not capped");
+
+        vm.expectRevert("ERC20: Mint over maxSupply limit");
+        launchedSyndicate.mint(bob, failingMintAmount);
+    }
+
+    function test_RevertOnMintByPermissionedContractOverSupplyCap() public {
+        _registerDeployer();
+        tbaAddressForSamzod = _getTbaAddress(address(tbaImplementation), 1024);
+        vm.prank(tbaAddressForSamzod);
+        address syndicateTokenV1 = deployerV1.deploySyndicate(
+            address(tbaImplementation),
+            SALT,
+            DEFAULT_MINT,
+            type(uint256).max,
+            1024,
+            "~samzod Uncapped Syndicate",
+            "~UNCAPPED"
+        );
+        launchedSyndicate = SyndicateTokenV1(payable(syndicateTokenV1));
+
+        console2.log("Syndicate Contract Launched at: ", address(syndicateTokenV1));
+        console2.log("syndicateOwner: ", launchedSyndicate.getOwner());
+        console2.log("initialSupply: ", launchedSyndicate.totalSupply());
+        console2.log("maxSupply: ", launchedSyndicate.getMaxSupply());
+        console2.log("azimiuthPoint: ", launchedSyndicate.getAzimuthPoint());
+        console2.log("name: ", launchedSyndicate.name());
+        console2.log("symbol: ", launchedSyndicate.symbol());
+        assertTrue(address(syndicateTokenV1).code.length > 0, "Syndicate Token not deployed");
+
+        uint256 newSupplyCap = 1000000 * 1e18;
+        uint256 failingMintAmount = 10000 * 1e18;
+
+        vm.startPrank(tbaAddressForSamzod);
+        launchedSyndicate.setMaxSupply(newSupplyCap);
+        bool isCapped = launchedSyndicate.isSupplyCapped();
+        uint256 actualSupplyCap = launchedSyndicate.getMaxSupply();
+        assertEq(actualSupplyCap, newSupplyCap, "Supply cap not set to provided value");
+
+        console2.log("Supply Cap is", isCapped);
+        assertTrue(isCapped, "Supply is not capped");
+
+        bool defaultsWhitelisted = launchedSyndicate.toggleDefaultWhitelist(true);
+        console2.log("Syndicate contract uses default whitelist: ", defaultsWhitelisted);
+        assertTrue(defaultsWhitelisted, "Syndicate token not using default whitelist");
+        permissionedContract = makeAddr("permissionedContract");
+        vm.stopPrank();
+
+        vm.prank(owner);
+        deployerV1.addPermissionedContract(permissionedContract);
+        assertEq(
+            deployerV1.checkIfPermissioned(permissionedContract), true, "Contract not successfully added to mapping"
+        );
+
+        vm.prank(permissionedContract);
+        vm.expectRevert("ERC20: Mint over maxSupply limit");
+        launchedSyndicate.permissionedMint(bob, failingMintAmount);
+    }
+
+    function test_RevertOnDeploySyndicateWithExcessivelyLongName() public {
+        _registerDeployer();
+        tbaAddressForSamzod = _getTbaAddress(address(tbaImplementation), 1024);
+        vm.prank(tbaAddressForSamzod);
+        vm.expectRevert("Invalid name: Must be <50 approved characters");
+        address syndicateTokenV1 = deployerV1.deploySyndicate(
+            address(tbaImplementation),
+            SALT,
+            DEFAULT_MINT,
+            type(uint256).max,
+            1024,
+            "~samzod-samzod Long-name should block Syndicate deployment",
+            "~UNCAPPED"
+        );
+    }
+
+    function test_RevertOnDeploySyndicateWithExcessivelyLongSymbol() public {
+        _registerDeployer();
+        tbaAddressForSamzod = _getTbaAddress(address(tbaImplementation), 1024);
+        vm.prank(tbaAddressForSamzod);
+        vm.expectRevert("Invalid symbol: Must be <16 approved characters");
+        address syndicateTokenV1 = deployerV1.deploySyndicate(
+            address(tbaImplementation),
+            SALT,
+            DEFAULT_MINT,
+            type(uint256).max,
+            1024,
+            "~samzod Syndicate",
+            "~TOO-LONG-A-SYMBOL"
+        );
+    }
     // Admin checks
+
     function testContractSizes() public {
         uint256 registrySize;
         uint256 deployerSize;
