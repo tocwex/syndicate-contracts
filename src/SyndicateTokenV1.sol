@@ -229,10 +229,11 @@ contract SyndicateTokenV1 is ERC20, ISyndicateTokenV1 {
 
         super._mint(account, amount_);
         super._mint(feeRecipient, fee_);
+        emit MintFeeIncurred({feeRecipient: feeRecipient, fee: fee_});
     }
 
     function _permissionedMint(address account, uint256 amount) internal {
-        require(totalSupply() + amount <= _maxSupply, "ERC20: Mint over masSupply limit");
+        require(totalSupply() + amount <= _maxSupply, "ERC20: Mint over maxSupply limit");
         super._mint(account, amount);
     }
 
@@ -255,6 +256,7 @@ contract SyndicateTokenV1 is ERC20, ISyndicateTokenV1 {
         if (totalFee > 0) {
             address feeRecipient = i_syndicateDeployer.getFeeRecipient();
             _permissionedMint(feeRecipient, totalFee);
+            emit BatchMintFeeIncurred({feeRecipient: feeRecipient, totalFees: totalFee});
         }
     }
 
