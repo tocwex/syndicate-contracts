@@ -9,8 +9,10 @@ interface ISyndicateTokenV1 {
     // Events
     event ContractAddedToWhitelist(address contractAddress);
     event contractRemovedFromWhitelist(address contractAddress);
-    event OwnershipRenounced(address lastOwner);
-    event OwnershipTbaUpdated(address newOwner);
+    event OwnershipRenounced(address lastOwner, uint256 blockheight);
+    event OwnershipTbaUpdated(
+        address newOwner, address previousOwner, address tbaImplementation, bytes32 tbaSalt, uint256 blockheight
+    );
     event SyndicateDissolved(uint256 blockHeight);
     event ProtocolFeeUpdated(uint256 newFee);
     event TokenMaxSupplySet(uint256 maxSupply);

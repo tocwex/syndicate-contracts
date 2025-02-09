@@ -52,8 +52,12 @@ contract SyndicateTokenV1 is ERC20, ISyndicateTokenV1 {
         string memory name,
         string memory symbol
     ) ERC20(name, symbol) {
-        i_syndicateDeployer = ISyndicateDeployerV1(deployerAddress);
         require(msg.sender == deployerAddress, "Syndicate Tokens must be deployed from the Syndicate factory contract");
+        require(protocolFee <= 10000, "Protocol Fee cannot be greater than 100%");
+        require(isValidName(name), "Invalid name: Must be <50 approved characters");
+        require(isValidSymbol(symbol), "Invalid symbol: Must be <16 approved characters");
+
+        i_syndicateDeployer = ISyndicateDeployerV1(deployerAddress);
         _owner = owner;
         if (maxSupply == type(uint256).max) {
             _maxSupply = maxSupply;
@@ -168,6 +172,7 @@ contract SyndicateTokenV1 is ERC20, ISyndicateTokenV1 {
 
     function setMaxSupply(uint256 setCap) external onlyOwner returns (bool success) {
         require(!_setCap, "Token max supply already set");
+        require(setCap >= totalSupply(), "Max supply must be greater than or equal to current total supply");
         return _setMaxSupply(setCap);
     }
 
@@ -257,6 +262,8 @@ contract SyndicateTokenV1 is ERC20, ISyndicateTokenV1 {
             address feeRecipient = i_syndicateDeployer.getFeeRecipient();
             _permissionedMint(feeRecipient, totalFee);
             emit BatchMintFeeIncurred({feeRecipient: feeRecipient, totalFees: totalFee});
+        } else if (_protocolFeeCurrent > 0) {
+            require(totalFee > 0, "Invalid Fee Calculation");
         }
     }
 
@@ -278,6 +285,7 @@ contract SyndicateTokenV1 is ERC20, ISyndicateTokenV1 {
         internal
         returns (bool success)
     {
+        address oldOwner = _owner;
         _owner = newOwner;
         success = true;
 
@@ -285,7 +293,13 @@ contract SyndicateTokenV1 is ERC20, ISyndicateTokenV1 {
             i_syndicateDeployer.registerTokenOwnerChange(newOwner, i_azimuthPoint, implementation, salt);
         require(registeryUpdated, "Registry must have updated to proceed");
 
-        emit OwnershipTbaUpdated(newOwner);
+        emit OwnershipTbaUpdated({
+            newOwner: newOwner,
+            previousOwner: oldOwner,
+            tbaImplementation: implementation,
+            tbaSalt: salt,
+            blockheight: block.number
+        });
 
         return success;
     }
@@ -299,7 +313,7 @@ contract SyndicateTokenV1 is ERC20, ISyndicateTokenV1 {
 
     function _renounceOwnership() internal returns (bool success) {
         _owner = address(0);
-        if (!_ownerMintable) {
+        if (_ownerMintable) {
             _ownerMintable = false;
             emit MintingRightsRenounced({tokenOwner: msg.sender});
         }
@@ -308,7 +322,7 @@ contract SyndicateTokenV1 is ERC20, ISyndicateTokenV1 {
             emit TokenMaxSupplySet({maxSupply: _maxSupply});
         }
         success = true;
-        emit OwnershipRenounced({lastOwner: msg.sender});
+        emit OwnershipRenounced({lastOwner: msg.sender, blockheight: block.number});
         return success;
     }
 
@@ -361,5 +375,38 @@ contract SyndicateTokenV1 is ERC20, ISyndicateTokenV1 {
         success = true;
         emit TokenMaxSupplySet({maxSupply: setCap});
         return success;
+    }
+
+    function isValidName(string memory name) internal pure returns (bool) {
+        bytes memory b = bytes(name);
+        // Optionally, enforce a minimum or maximum length:
+        if (b.length == 0 || b.length > 50) return false;
+        for (uint256 i = 0; i < b.length; i++) {
+            bytes1 char = b[i];
+            bool isDigit = (char >= 0x30 && char <= 0x39); // 0-9
+            bool isUppercase = (char >= 0x41 && char <= 0x5A); // Uppercase letters
+            bool isLowercase = (char >= 0x61 && char <= 0x7A); // Lowercase letters
+            bool isSpecial = (char == 0x20 || char == 0x2D || char == 0x7E); // '-' or '_' or '~'
+            if (!(isDigit || isUppercase || isLowercase || isSpecial)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    function isValidSymbol(string memory symbol) internal pure returns (bool) {
+        bytes memory b = bytes(symbol);
+        // Allow up to 16 characters to accommodate potential full planet names with space
+        if (b.length == 0 || b.length > 16) return false;
+        for (uint256 i = 0; i < b.length; i++) {
+            bytes1 char = b[i];
+            bool isUppercase = (char >= 0x41 && char <= 0x5A); // Uppercase letters only
+            bool isDigit = (char >= 0x30 && char <= 0x39); // 0-9
+            bool isSpecial = (char == 0x2D || char == 0x7E); // '-' or '~'
+            if (!(isUppercase || isDigit || isSpecial)) {
+                return false;
+            }
+        }
+        return true;
     }
 }
