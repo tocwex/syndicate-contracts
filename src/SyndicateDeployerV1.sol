@@ -104,6 +104,11 @@ contract SyndicateDeployerV1 is ISyndicateDeployerV1, ReentrancyGuard {
         _;
     }
 
+    modifier onlyBetaMode() {
+        require(_betaMode, "Function only valid if beta mode is on");
+        _;
+    }
+
     constructor(address registryAddress, address azimuthContract, uint256 fee) {
         require(fee <= 10000, "Protocol Fee may not be greater than 100%");
         i_registry = ISyndicateRegistry(registryAddress);
@@ -219,19 +224,19 @@ contract SyndicateDeployerV1 is ISyndicateDeployerV1, ReentrancyGuard {
 
     function addWhitelistedPoint(
         uint256 azimuthPoint
-    ) external onlyOwner returns (bool success) {
+    ) external onlyOwner onlyBetaMode returns (bool success) {
         return _addWhitelistedPoint(azimuthPoint);
     }
 
     function batchWhitelistPoints(
         uint256[] calldata azimuthPoint
-    ) external onlyOwner returns (bool success) {
+    ) external onlyOwner onlyBetaMode returns (bool success) {
         return _batchWhitelistPoints(azimuthPoint);
     }
 
     function removeWhitelistedPoint(
         uint256 azimuthPoint
-    ) external onlyOwner returns (bool success) {
+    ) external onlyOwner onlyBetaMode returns (bool success) {
         return _removeWhitelistedPoint(azimuthPoint);
     }
 
