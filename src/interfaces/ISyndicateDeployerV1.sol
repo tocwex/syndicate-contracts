@@ -23,7 +23,12 @@ interface ISyndicateDeployerV1 {
     /// @dev
     /// @param token The syndicate token contract address
     /// @param owner The address associated with Urbit ID that launched token
-    event TokenDeployed(address token, address owner);
+    /// @param azimuthPoint The Urbit ID associated with the Syndicate Token
+    event TokenDeployed(
+        address indexed token,
+        address indexed owner,
+        uint256 indexed azimuthPoint
+    );
 
     /// @notice emitted when a syndicate token contract's owner changes
     /// @dev

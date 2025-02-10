@@ -353,11 +353,12 @@ contract SyndicateDeployerV1 is ISyndicateDeployerV1, ReentrancyGuard {
                 azimuthPoint: azimuthPoint
             });
 
-        _deployedSyndicates[address(syndicateTokenV1)] = true;
         i_registry.registerSyndicate(syndicate);
+        _deployedSyndicates[address(syndicateTokenV1)] = true;
         emit TokenDeployed({
             token: address(syndicateTokenV1),
-            owner: tokenOwner
+            owner: tokenOwner,
+            azimuthPoint: azimuthPoint
         });
         return address(syndicateTokenV1);
     }
