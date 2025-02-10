@@ -128,6 +128,8 @@ contract DeploySyndicate is Script {
                     })
                 );
             }
+            address tbaImplementation = config.implementationAddress;
+            deployerV1.addApprovedTbaImplementation(tbaImplementation);
         }
         //
         // syndicateToken = SyndicateTokenV1(

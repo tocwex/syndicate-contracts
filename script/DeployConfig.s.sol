@@ -109,7 +109,7 @@ contract DeployConfig is Script {
                     tokenSymbol: "DEV",
                     initialSupply: 1000000000000000000000000,
                     maxSupply: 21000000000000000000000000,
-                    deployerFee: 10000000000000000000
+                    deployerFee: 300
                 });
         } else if (block.chainid == 11155111) {
             // Sepolia Testnet
@@ -133,7 +133,7 @@ contract DeployConfig is Script {
                     tokenSymbol: "SEP",
                     initialSupply: 1000000000000000000000000,
                     maxSupply: 21000000000000000000000000,
-                    deployerFee: 10000000000000000000
+                    deployerFee: 300
                 });
         } else if (block.chainid == 1) {
             // Ethereum Mainnet
@@ -157,7 +157,7 @@ contract DeployConfig is Script {
                     tokenSymbol: "~TOCWEX",
                     initialSupply: 1000000000000000000000000,
                     maxSupply: 21000000000000000000000000,
-                    deployerFee: 10000000000000000000
+                    deployerFee: 300
                 });
         }
         revert("Unsupported Network");
