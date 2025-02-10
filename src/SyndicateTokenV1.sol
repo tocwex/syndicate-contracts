@@ -5,11 +5,12 @@ pragma solidity ^0.8.19;
 // TODO implment reentrancy guards
 // TODO add natspec for internal functions
 
+import {ReentrancyGuard} from "../lib/openzepplin-contracts/contracts/security/ReentrancyGuard.sol";
 import {ERC20} from "@openzepplin/token/ERC20/ERC20.sol";
 import {ISyndicateDeployerV1} from "../src/interfaces/ISyndicateDeployerV1.sol";
 import {ISyndicateTokenV1} from "../src/interfaces/ISyndicateTokenV1.sol";
 
-contract SyndicateTokenV1 is ERC20, ISyndicateTokenV1 {
+contract SyndicateTokenV1 is ERC20, ISyndicateTokenV1, ReentrancyGuard {
     // ERC20 Parent Contract Variables
     // mapping(address => uint256) private _balances;
     // mapping(address => mapping(address => uint256)) private _allowances;
@@ -137,28 +138,28 @@ contract SyndicateTokenV1 is ERC20, ISyndicateTokenV1 {
     function mint(
         address account,
         uint256 amount
-    ) external onlyOwner onlyOwnerMintable {
+    ) external onlyOwner onlyOwnerMintable nonReentrant {
         return _mint(account, amount);
     }
 
     function permissionedMint(
         address account,
         uint256 amount
-    ) external onlyPermissionedContract {
+    ) external onlyPermissionedContract nonReentrant {
         return _permissionedMint(account, amount);
     }
 
     function batchMint(
         address[] calldata account,
         uint256[] calldata amount
-    ) external onlyOwner onlyOwnerMintable {
+    ) external onlyOwner onlyOwnerMintable nonReentrant {
         return _batchMint(account, amount);
     }
 
     function permissionedBatchMint(
         address[] calldata account,
         uint256[] calldata amount
-    ) external onlyPermissionedContract {
+    ) external onlyPermissionedContract nonReentrant {
         return _permissionedBatchMint(account, amount);
     }
 
@@ -166,7 +167,7 @@ contract SyndicateTokenV1 is ERC20, ISyndicateTokenV1 {
         address newOwner,
         address tbaImplementation,
         bytes32 salt
-    ) external onlyOwner returns (bool success) {
+    ) external onlyOwner nonReentrant returns (bool success) {
         return _updateOwnershipTba(newOwner, tbaImplementation, salt);
     }
 
@@ -178,7 +179,12 @@ contract SyndicateTokenV1 is ERC20, ISyndicateTokenV1 {
         return _renounceOwnership();
     }
 
-    function dissolveSyndicate() external onlyOwner returns (bool success) {
+    function dissolveSyndicate()
+        external
+        onlyOwner
+        nonReentrant
+        returns (bool success)
+    {
         return _dissolveSyndicate();
     }
 

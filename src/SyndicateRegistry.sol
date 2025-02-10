@@ -1,14 +1,13 @@
 // SPDX-License-Identifier: GPLv3
 
-// TODO Implement reentrancy guards
-
 pragma solidity ^0.8.19;
 
+import {ReentrancyGuard} from "../lib/openzepplin-contracts/contracts/security/ReentrancyGuard.sol";
 import {SyndicateTokenV1} from "./SyndicateTokenV1.sol";
 import {SyndicateDeployerV1} from "./SyndicateDeployerV1.sol";
 import {ISyndicateRegistry} from "./interfaces/ISyndicateRegistry.sol";
 
-contract SyndicateRegistry is ISyndicateRegistry {
+contract SyndicateRegistry is ISyndicateRegistry, ReentrancyGuard {
     // State Variables
     address private _owner;
     address private _pendingOwner;
@@ -19,7 +18,7 @@ contract SyndicateRegistry is ISyndicateRegistry {
     mapping(uint256 => Syndicate) private _syndicate; // azimuthPoint => syndicate token contract struct
     mapping(address => uint256) private _addressToAzimuthPoint; // syndicate token address to azimuth point
     mapping(address => bool) private _isRegisteredDeployer; // check if address is a registered deployer
-    mapping(address => bool) private _isActiveDeployer;
+    mapping(address => bool) private _isActiveDeployer; // check if address is an active deployer
 
     // Modifiers
     modifier onlyOwner() {
@@ -50,8 +49,6 @@ contract SyndicateRegistry is ISyndicateRegistry {
         );
         _;
     }
-
-    // TODO onlyActiveDeployer modifier to block registration of a new syndicate?
 
     // Constructor
     constructor() {
@@ -150,11 +147,15 @@ contract SyndicateRegistry is ISyndicateRegistry {
         return _renounceOwnership();
     }
 
-    // TODO make nonReentrant
     function executeCall(
         address target,
         bytes calldata data
-    ) external onlyOwner returns (bool success, bytes memory result) {
+    )
+        external
+        onlyOwner
+        nonReentrant
+        returns (bool success, bytes memory result)
+    {
         return _executeCall(target, data);
     }
 
