@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPLv3
 
 // TODOs
+// TODO tests for adding and removing tba implementations to a deloyer
 // properly name all tests
 pragma solidity ^0.8.19;
 
@@ -87,6 +88,7 @@ contract SyndicateEcosystemTest is Test {
 
         // Deactivate beta mode for default test state
         deployerV1.toggleBetaMode(false);
+        deployerV1.addApprovedTbaImplementation(address(tbaImplementation));
 
         vm.stopPrank();
     }
@@ -860,7 +862,7 @@ contract SyndicateEcosystemTest is Test {
         uint256 amount4 = 18000 * 1e18;
 
         uint256 totalMintAmount = (amount1 + amount2 + amount3 + amount4);
-        uint256 expectedMintFees = (amount1 + amount2 + amount3 + amount4) * FEE / 10000;
+        uint256 expectedMintFees = ((amount1 + amount2 + amount3 + amount4) * FEE) / 10000;
         uint256 netMintAmount = (totalMintAmount - expectedMintFees);
 
         _registerDeployer();
@@ -1117,6 +1119,7 @@ contract SyndicateEcosystemTest is Test {
         vm.expectRevert("Unauthorized: Owner does not have minting rights");
         launchedSyndicate.mint(bob, mintAmount);
     }
+
     // TODO I need to build out the zod test cases to account for the AZP tokenId of 0
 
     function test_DissolveSyndicateViaTokenByOwner() public {
@@ -1351,6 +1354,7 @@ contract SyndicateEcosystemTest is Test {
             "~TOO-LONG-A-SYMBOL"
         );
     }
+
     // Admin checks
 
     function testContractSizes() public {

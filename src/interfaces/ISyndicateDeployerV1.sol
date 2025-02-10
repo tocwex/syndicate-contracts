@@ -13,7 +13,11 @@ interface ISyndicateDeployerV1 {
     /// @param registryAddress The immutable registry address to which the deployer will be added
     /// @param fee The protocol fee rate applied to token contracts launched from this deployer
     /// @param feeRecipient The address to recieve protocol fees from deployed token contracts
-    event DeployerV1Deployed(address indexed registryAddress, uint256 fee, address feeRecipient);
+    event DeployerV1Deployed(
+        address indexed registryAddress,
+        uint256 fee,
+        address feeRecipient
+    );
 
     /// @notice emitted when a new token is deployed
     /// @dev
@@ -53,10 +57,27 @@ interface ISyndicateDeployerV1 {
     event BetaModeChanged(bool betaMode);
 
     // TODO add natspec
+
+    event AddedTbaImplementation(
+        address tbaImplementationAddress,
+        address deployerOwner
+    );
+
+    // TODO add natspec
+    event RemovedTbaImplementation(
+        address tbaImplementationAddress,
+        address deployerOwner
+    );
+
+    // TODO add natspec
     event ExternalCallAttempted(address indexed target, bytes data);
 
     // TODO add natspec
-    event ExternalCallExecuted(address indexed target, bytes data, bool success);
+    event ExternalCallExecuted(
+        address indexed target,
+        bytes data,
+        bool success
+    );
 
     // Errors
     // TODO Add natspec
@@ -92,9 +113,12 @@ interface ISyndicateDeployerV1 {
     /// @param implementation The address of a IERC6551Account compliant contract
     /// @param salt The bytes32 value of some salt, by default `bytes32(0)` should be used
     /// @return success The boolean which should indicate that the input parameters were all validated, the registry was updated, and the syndcate contract owner was updated
-    function registerTokenOwnerChange(address newOwner, uint256 azimuthPoint, address implementation, bytes32 salt)
-        external
-        returns (bool success);
+    function registerTokenOwnerChange(
+        address newOwner,
+        uint256 azimuthPoint,
+        address implementation,
+        bytes32 salt
+    ) external returns (bool success);
 
     /// @notice Called to change protocol fee
     /// @dev function should be restricted to onlyOwner
@@ -105,31 +129,58 @@ interface ISyndicateDeployerV1 {
     /// @dev
     /// @param newFeeRecipient The address to recieve token distribution fee
     /// @return success The confirmation of the address being updated
-    function changeFeeRecipient(address newFeeRecipient) external returns (bool success);
+    function changeFeeRecipient(
+        address newFeeRecipient
+    ) external returns (bool success);
 
     // TODO add natspec
     function toggleBetaMode(bool betaState) external returns (bool success);
 
     // TODO add natspec
-    function addWhitelistedPoint(uint256 azimuthPoint) external returns (bool success);
+    function addApprovedTbaImplementation(
+        address contractAddress
+    ) external returns (bool success);
 
     // TODO add natspec
-    function batchWhitelistPoints(uint256[] calldata azimuthPoint) external returns (bool success);
+    function removeApprovedTbaImplementation(
+        address contractAddress
+    ) external returns (bool success);
 
     // TODO add natspec
-    function removeWhitelistedPoint(uint256 azimuthPoint) external returns (bool success);
+    function addWhitelistedPoint(
+        uint256 azimuthPoint
+    ) external returns (bool success);
 
     // TODO add natspec
-    function addPermissionedContract(address contractAddress) external returns (bool success);
+    function batchWhitelistPoints(
+        uint256[] calldata azimuthPoint
+    ) external returns (bool success);
 
     // TODO add natspec
-    function removePermissionedContract(address contractAddress) external returns (bool success);
+    function removeWhitelistedPoint(
+        uint256 azimuthPoint
+    ) external returns (bool success);
 
     // TODO add natspec
-    function dissolveSyndicateInRegistry(uint256 azimuthPoint) external returns (bool success);
+    function addPermissionedContract(
+        address contractAddress
+    ) external returns (bool success);
 
     // TODO add natspec
-    function executeCall(address target, bytes calldata data) external returns (bool success, bytes memory result);
+    function removePermissionedContract(
+        address contractAddress
+    ) external returns (bool success);
+
+    // TODO add natspec
+    function dissolveSyndicateInRegistry(
+        uint256 azimuthPoint
+    ) external returns (bool success);
+
+    // TODO add natspec
+    function executeCall(
+        address target,
+        bytes calldata data
+    ) external returns (bool success, bytes memory result);
 
     /// @notice called to get address of registry contract
     /// @dev
@@ -160,8 +211,20 @@ interface ISyndicateDeployerV1 {
     function getDeployerStatus() external view returns (bool isActive);
 
     // TODO add natspec
-    function checkIfPermissioned(address contractAddress) external view returns (bool isPermissioned);
+    function checkIfPermissioned(
+        address contractAddress
+    ) external view returns (bool isPermissioned);
 
     // TODO add natspec
-    function isRelatedSyndicate(address contractAddress) external view returns (bool isRelated);
+    function isRelatedSyndicate(
+        address contractAddress
+    ) external view returns (bool isRelated);
+
+    // TODO add natspec
+    function inBetaMode() external view returns (bool betaState);
+
+    // TODO add natspec
+    function isApprovedImplementation(
+        address checkAddress
+    ) external view returns (bool approvedImplementation);
 }

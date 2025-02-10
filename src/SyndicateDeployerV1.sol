@@ -32,6 +32,7 @@ contract SyndicateDeployerV1 is ISyndicateDeployerV1, ReentrancyGuard {
     mapping(uint256 => bool) private _betaWhitelist;
     mapping(address => bool) private _deployedSyndicates;
     mapping(address => bool) private _permissionedContracts;
+    mapping(address => bool) private _approvedImplementation;
 
     // Modifiers
     modifier onlyOwner() {
@@ -130,6 +131,7 @@ contract SyndicateDeployerV1 is ISyndicateDeployerV1, ReentrancyGuard {
     //// External
 
     // @inheritdoc ISyndicateDeployerV1
+    // TODO might need validation of implementation... see sightbear issue #0326713f
     function deploySyndicate(
         address implementation,
         bytes32 salt,
@@ -152,6 +154,10 @@ contract SyndicateDeployerV1 is ISyndicateDeployerV1, ReentrancyGuard {
                 "Unauthorized: Urbit ID not on beta whitelist"
             );
         }
+        require(
+            _approvedImplementation[implementation],
+            "Unauthorized: initial deployment must occur from approved tokenbound implementation"
+        );
         return
             _deploySyndicate(
                 msg.sender,
@@ -197,6 +203,18 @@ contract SyndicateDeployerV1 is ISyndicateDeployerV1, ReentrancyGuard {
         bool betaState
     ) external onlyOwner returns (bool success) {
         return _toggleBetaMode(betaState);
+    }
+
+    function addApprovedTbaImplementation(
+        address contractAddress
+    ) external onlyOwner returns (bool success) {
+        return _addApprovedTbaImplementation(contractAddress);
+    }
+
+    function removeApprovedTbaImplementation(
+        address contractAddress
+    ) external onlyOwner returns (bool success) {
+        return _removeApprovedTbaImplementation(contractAddress);
     }
 
     function addWhitelistedPoint(
@@ -293,6 +311,12 @@ contract SyndicateDeployerV1 is ISyndicateDeployerV1, ReentrancyGuard {
         return _betaMode;
     }
 
+    function isApprovedImplementation(
+        address checkAddress
+    ) external view returns (bool approvedImplementation) {
+        return _approvedImplementation[checkAddress];
+    }
+
     //// Internal Functions
     // TODO add natspec
     function _deploySyndicate(
@@ -371,7 +395,36 @@ contract SyndicateDeployerV1 is ISyndicateDeployerV1, ReentrancyGuard {
         return success;
     }
 
+    function _addApprovedTbaImplementation(
+        address contractAddress
+    ) internal returns (bool success) {
+        _approvedImplementation[contractAddress] = true;
+        success = true;
+
+        emit AddedTbaImplementation({
+            tbaImplementationAddress: contractAddress,
+            deployerOwner: msg.sender
+        });
+
+        return success;
+    }
+
+    function _removeApprovedTbaImplementation(
+        address contractAddress
+    ) internal returns (bool success) {
+        _approvedImplementation[contractAddress] = true;
+        success = true;
+
+        emit RemovedTbaImplementation({
+            tbaImplementationAddress: contractAddress,
+            deployerOwner: msg.sender
+        });
+
+        return success;
+    }
+
     // TODO add natspec
+
     function _addWhitelistedPoint(
         uint256 azimuthPoint
     ) internal returns (bool success) {
