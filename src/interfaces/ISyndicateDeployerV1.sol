@@ -38,8 +38,16 @@ interface ISyndicateDeployerV1 {
 
     /// @notice emitted when owner updates the fee percentage
     /// @dev
-    /// @param fee The minting fee as percentage
-    event FeeUpdated(uint256 fee);
+    /// @param newFee The minting fee as percentage using basis points
+    /// @param updateBlockheight The actual blockheight of the change
+    event FeeUpdated(uint256 newFee, uint256 updateBlockheight);
+
+    // TODO add natspec
+    event FeeRateChangeProposed(
+        uint256 newFee,
+        uint256 updateBlockheight,
+        address changeProposer
+    );
 
     /// @notice emitted when the protocol fee recipient is updated
     /// @dev
@@ -125,10 +133,16 @@ interface ISyndicateDeployerV1 {
         bytes32 salt
     ) external returns (bool success);
 
+    // TODO add natspec
+    function proposeFeeChange(
+        uint256 proposedFee,
+        uint256 targetDelay
+    ) external returns (bool success);
+
     /// @notice Called to change protocol fee
     /// @dev function should be restricted to onlyOwner
-    /// @param fee The fee percentage
-    function changeFee(uint256 fee) external;
+    /// @return success The boolean which should indicate that the fee change was successful
+    function changeFee() external returns (bool success);
 
     /// @notice called to update the feeRecipient address
     /// @dev
@@ -216,7 +230,13 @@ interface ISyndicateDeployerV1 {
     function getDeployerStatus() external view returns (bool isActive);
 
     // TODO add natspec
-    function checkIfPermissioned(
+    function getRateChangeBlockheight()
+        external
+        view
+        returns (uint256 rateChangeBlockheight);
+
+    // TODO add natspec
+    function isPermissionedContract(
         address contractAddress
     ) external view returns (bool isPermissioned);
 

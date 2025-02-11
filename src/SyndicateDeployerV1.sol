@@ -18,6 +18,7 @@ contract SyndicateDeployerV1 is ISyndicateDeployerV1, ReentrancyGuard {
     //// Constants
     IERC6551Registry private constant TBA_REGISTRY =
         IERC6551Registry(0x000000006551c19487814612e58FE06813775758);
+    uint256 private constant MIN_FEE_TIMELOCK = 6600;
 
     //// Immutables
     ISyndicateRegistry private immutable i_registry;
@@ -25,7 +26,9 @@ contract SyndicateDeployerV1 is ISyndicateDeployerV1, ReentrancyGuard {
 
     //// Mutables
     address private _feeRecipient;
-    uint256 private _fee;
+    uint256 private _feeRate;
+    uint256 private _proposedFeeRate;
+    uint256 private _rateChangeBlockheight;
     bool private _betaMode = true;
 
     //// Mappings
@@ -125,7 +128,7 @@ contract SyndicateDeployerV1 is ISyndicateDeployerV1, ReentrancyGuard {
         i_registry = ISyndicateRegistry(registryAddress);
         i_azimuthContract = IERC721(azimuthContract);
         _feeRecipient = msg.sender;
-        _fee = fee;
+        _feeRate = fee;
         emit DeployerV1Deployed({
             registryAddress: registryAddress,
             fee: fee,
@@ -147,7 +150,6 @@ contract SyndicateDeployerV1 is ISyndicateDeployerV1, ReentrancyGuard {
     //// External
 
     // @inheritdoc ISyndicateDeployerV1
-    // TODO might need validation of implementation... see sightbear issue #0326713f
     function deploySyndicate(
         address implementation,
         bytes32 salt,
@@ -180,7 +182,7 @@ contract SyndicateDeployerV1 is ISyndicateDeployerV1, ReentrancyGuard {
                 initialSupply,
                 maxSupply,
                 azimuthPoint,
-                _fee,
+                _feeRate,
                 name,
                 symbol
             );
@@ -202,10 +204,24 @@ contract SyndicateDeployerV1 is ISyndicateDeployerV1, ReentrancyGuard {
         return _registerTokenOwnerChange(msg.sender, newOwner);
     }
 
+    function proposeFeeChange(
+        uint256 proposedFee,
+        uint256 targetDelay
+    ) external onlyOwner returns (bool success) {
+        require(
+            targetDelay >= MIN_FEE_TIMELOCK,
+            "Unauthorized: proposed delay must be at least 6600 blocks"
+        );
+        return _proposeFeeChange(proposedFee, targetDelay);
+    }
+
     /// @inheritdoc ISyndicateDeployerV1
-    function changeFee(uint256 fee) external onlyOwner {
-        require(fee <= 10000, "Fee must not exceed 100%");
-        return _changeFee(fee);
+    function changeFee() external onlyOwner returns (bool success) {
+        require(
+            block.number >= _rateChangeBlockheight,
+            "Unauthorized: rate change still timelocked"
+        );
+        return _changeFee();
     }
 
     /// @inheritdoc ISyndicateDeployerV1
@@ -303,15 +319,23 @@ contract SyndicateDeployerV1 is ISyndicateDeployerV1, ReentrancyGuard {
 
     // @inheritdoc ISyndicateDeployerV1
     function getFee() external view returns (uint256 fee) {
-        return _fee;
+        return _feeRate;
     }
 
     function getDeployerStatus() external view returns (bool isActive) {
         return _getDeployerStatus();
     }
 
+    function getRateChangeBlockheight()
+        external
+        view
+        returns (uint256 rateChangeBlockheight)
+    {
+        return _rateChangeBlockheight;
+    }
+
     // TODO add natspec
-    function checkIfPermissioned(
+    function isPermissionedContract(
         address contractAddress
     ) external view returns (bool isPermissioned) {
         return _permissionedContracts[contractAddress];
@@ -387,10 +411,32 @@ contract SyndicateDeployerV1 is ISyndicateDeployerV1, ReentrancyGuard {
         return success;
     }
 
-    // TODO add natspec
-    function _changeFee(uint256 fee) internal {
-        _fee = fee;
-        emit FeeUpdated(fee);
+    function _proposeFeeChange(
+        uint256 proposedFee,
+        uint256 targetDelay
+    ) internal returns (bool success) {
+        _proposedFeeRate = proposedFee;
+        _rateChangeBlockheight = targetDelay + block.number;
+        success = true;
+
+        emit FeeRateChangeProposed({
+            newFee: proposedFee,
+            updateBlockheight: _rateChangeBlockheight,
+            changeProposer: msg.sender
+        });
+
+        return success;
+    }
+
+    function _changeFee() internal returns (bool success) {
+        _feeRate = _proposedFeeRate;
+        _rateChangeBlockheight = 0;
+        _proposedFeeRate = 0;
+        success = true;
+
+        emit FeeUpdated({newFee: _feeRate, updateBlockheight: block.number});
+
+        return success;
     }
 
     // TODO add natspec

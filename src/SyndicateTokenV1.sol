@@ -94,7 +94,7 @@ contract SyndicateTokenV1 is ERC20, ISyndicateTokenV1, ReentrancyGuard {
 
     modifier onlyPermissionedContract() {
         require(
-            i_syndicateDeployer.checkIfPermissioned(msg.sender),
+            i_syndicateDeployer.isPermissionedContract(msg.sender),
             "Unauthorized: Not a permissioned contract address"
         );
         if (!_defaultWhitelist) {
