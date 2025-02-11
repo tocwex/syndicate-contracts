@@ -110,7 +110,18 @@ contract SyndicateDeployerV1 is ISyndicateDeployerV1, ReentrancyGuard {
     }
 
     constructor(address registryAddress, address azimuthContract, uint256 fee) {
+        require(
+            registryAddress != address(0),
+            "Registry address cannot be zero"
+        );
+        require(
+            azimuthContract != address(0),
+            "Azimuth contract address cannot be zero"
+        );
+        require(registryAddress.code.length > 0, "Registry must be a contract");
+        require(azimuthContract.code.length > 0, "Azimuth must be a contract");
         require(fee <= 10000, "Protocol Fee may not be greater than 100%");
+
         i_registry = ISyndicateRegistry(registryAddress);
         i_azimuthContract = IERC721(azimuthContract);
         _feeRecipient = msg.sender;
@@ -468,8 +479,7 @@ contract SyndicateDeployerV1 is ISyndicateDeployerV1, ReentrancyGuard {
         return success;
     }
 
-    // TODO add events for permissioned contracts
-
+    // TODO add natspec
     function _addPermissionedContract(
         address contractAddress
     ) internal returns (bool success) {
@@ -503,9 +513,8 @@ contract SyndicateDeployerV1 is ISyndicateDeployerV1, ReentrancyGuard {
                 azimuthPoint: azimuthPoint
             });
 
-        _deployedSyndicates[msg.sender] = false;
-
         i_registry.dissolveSyndicate(syndicate);
+        _deployedSyndicates[msg.sender] = false;
         success = true;
         // TODO Add Event
         return success;
