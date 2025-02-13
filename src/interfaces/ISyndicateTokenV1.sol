@@ -15,13 +15,21 @@ interface ISyndicateTokenV1 {
 
     ///@notice Emitted when a permissioned contract is added to the custom whitelist
     /// @dev Any address added to the custom whitelist must also be in the SyndicateDeployerV1 whitelist in order to function. The Custom whitelist is intended to allow a Syndicate Token owner to limit permissioned contracts to a subset of the officially permissioned contracts.
+    /// @param tokenOwner The tokenbound account address that called the function to remove a contract from the whitelist
     /// @param contractAddress The address of the contract added to the whitelist
-    event ContractAddedToWhitelist(address indexed contractAddress);
+    event ContractAddedToWhitelist(
+        address indexed tokenOwner,
+        address indexed contractAddress
+    );
 
     ///@notice Emitted when a permissioned contract is removed from the custom whitelist
     /// @dev Any address added to the custom whitelist must also be in the SyndicateDeployerV1 whitelist in order to function. The Custom whitelist is intended to allow a Syndicate Token owner to limit permissioned contracts to a subset of the officially permissioned contracts.
+    /// @param tokenOwner The tokenbound account address that called the function to add a contract to the whitelist
     /// @param contractAddress The address of the contract added to  the whitelist
-    event ContractRemovedFromWhitelist(address indexed contractAddress);
+    event ContractRemovedFromWhitelist(
+        address indexed tokenOwner,
+        address indexed contractAddress
+    );
 
     /// @notice Emitted when the syndicate owner renounces token ownership rights
     /// @dev
@@ -166,6 +174,12 @@ interface ISyndicateTokenV1 {
         address contractAddress
     ) external returns (bool success);
 
+    /// @notice Toggles the permissions of the default SyndicateDeploverV1 whitelist
+    /// @dev If the default whitelist state is true, any address in the permissioned contract mapping will be able to call the Syndicate Token permissioned mint functions; by setting it to false, only a subset of contracts--those added by the Syndicate Token owner--will be able to call those functions. This is set to false by default to ensure Syndicate Token owners need to turn it on in order to let *any* permissioned contracts mint on behalf of their Syndicate.
+    /// @param state The desired state of the whitelist perms; true allows the default whitelist, false provides the tighter access controls
+    /// @return success Whether the function succeeded; recieving a false would be unexpected as the intended behavior is for a transaction to revert instead
+    function toggleDefaultWhitelist(bool state) external returns (bool success);
+
     /// @notice Allows the Syndicate contract ecosystem owner to reduce the protocol fee
     /// @dev The protocol fee incurred by mint and batchMint functions can be reduced but not increased by the Syndicate contract ecosystem owner on a case by case basis.
     /// @param newFee The amount of the new fee, in basis points (i.e. 300 is a 3% fee)
@@ -184,31 +198,34 @@ interface ISyndicateTokenV1 {
     ////////////////////
 
     /// @notice Gets the address of the related SyndicateDeployerV1 contract
-    /// @return The address of a SyndicateDeployerV1 contract which should be callable with the ISyndicateDeployerV1 interface
-    function getDeployerAddress() external view returns (address);
+    /// @return deployerAddress The address of a SyndicateDeployerV1 contract which should be callable with the ISyndicateDeployerV1 interface
+    function getDeployerAddress()
+        external
+        view
+        returns (address deployerAddress);
 
     /// @notice Gets the max supply of the Syndicate Token
-    /// @return the amount of max supply with 18 decimals
-    function getMaxSupply() external view returns (uint256);
+    /// @return maxSupply the amount of max supply with 18 decimals
+    function getMaxSupply() external view returns (uint256 maxSupply);
 
     /// @notice Gets the azimuth point associated with this Syndicate Token
     /// @dev This uint256 is the tokenId of an ERC721 from Urbit's Azimuth Contract
     /// @dev This is also the @ud of an Urbit 'ship' on the Urbit Network. Contacting the Syndicate Token Owner can be done by getting on the urbit network and sending a message to `@p`<tokenId>
-    /// @return The tokenId of the Urbit ID associated with this Syndicate
-    function getAzimuthPoint() external view returns (uint256);
+    /// @return azimuthPoint The tokenId of the Urbit ID associated with this Syndicate
+    function getAzimuthPoint() external view returns (uint256 azimuthPoint);
 
     /// @notice Gets the max protocol fee
     /// @dev This value is set on contract creation by the SyndicateDeployerV1 contract's then-current protocol fee value
-    /// @return The protocol fee amount in basis points (i.e. 300 is a 3% fee)
-    function getMaxProtocolFee() external view returns (uint256);
+    /// @return maxFee The protocol fee amount in basis points (i.e. 300 is a 3% fee)
+    function getMaxProtocolFee() external view returns (uint256 maxFee);
 
     /// @notice Gets the current protocol fee
-    /// @return The current protocol fee amount in basis points (i.e. 300 is a 3% fee)
-    function getProtocolFee() external view returns (uint256);
+    /// @return currentFee The current protocol fee amount in basis points (i.e. 300 is a 3% fee)
+    function getProtocolFee() external view returns (uint256 currentFee);
 
     /// @notice Gets the current Syndicate Token owner address
-    /// @return The address with ownership permissions for the Syndicate Token contract
-    function getOwner() external view returns (address);
+    /// @return syndicateOwner The address with ownership permissions for the Syndicate Token contract
+    function getOwner() external view returns (address syndicateOwner);
 
     /// @notice Checks if a supply cap is set
     /// @dev This should be used in conjunction with `getMaxSupply()` to determine if the token is capped
