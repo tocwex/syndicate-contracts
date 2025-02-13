@@ -1,13 +1,16 @@
 // SPDX-License-Identifier: GPLv3
-
 pragma solidity ^0.8.19;
-
-// TODO add natspec for internal functions
 
 import {ReentrancyGuard} from "../lib/openzepplin-contracts/contracts/security/ReentrancyGuard.sol";
 import {ERC20} from "@openzepplin/token/ERC20/ERC20.sol";
 import {ISyndicateDeployerV1} from "../src/interfaces/ISyndicateDeployerV1.sol";
 import {ISyndicateTokenV1} from "../src/interfaces/ISyndicateTokenV1.sol";
+
+/// @title Syndicate Fungible Token V1
+/// @notice This is the implementation of a Syndicate Token which extends the ERC20 standard.
+/// @notice A Syndicate Token is a fungible token that is associated with, and controlled by, an Urbit ID.
+/// @notice The owner of the Syndicate Token will always be an ERC6551 tokenbound account of the Urbit ID that launched it, thus if you make contact over the urbit network with `@p`<i_azimuithPoint>, you know that you are in touch with the entity in control of this fungible token via the `_owner`/`getOwner()`.
+/// @custom:author ~sarlev-sarsen -- DM on the urbit network for further details
 
 contract SyndicateTokenV1 is ERC20, ISyndicateTokenV1, ReentrancyGuard {
     ///////////////////////
@@ -51,12 +54,12 @@ contract SyndicateTokenV1 is ERC20, ISyndicateTokenV1, ReentrancyGuard {
     /////////////////
 
     constructor(
-        address deployerAddress,
-        address owner,
+        address deployerAddress, // Provided by the `deploySyndicate()` function from SyndicateDeployerV1
+        address owner, // validated address of TBA using TBA implementation address in the deployer whitelist
         uint256 initialSupply,
         uint256 maxSupply,
-        uint256 azimuthPoint,
-        uint256 protocolFee,
+        uint256 azimuthPoint, // validated to not have existing Syndicate token, and be associated with validated TBA
+        uint256 protocolFee, // provided by the `deploySyndicate()` function from SyndicateDeployerV1
         string memory name,
         string memory symbol
     ) ERC20(name, symbol) {
@@ -97,16 +100,20 @@ contract SyndicateTokenV1 is ERC20, ISyndicateTokenV1, ReentrancyGuard {
     // Modifiers //
     ///////////////
 
+    /// @notice access controls for functions only callable by the contract owner, a TBA of the i_azimuthPoint
     modifier onlyOwner() {
         require(msg.sender == _owner, "Unauthorized: Only syndicate owner");
         _;
     }
 
+    /// @notice access controls for functions only callable by a permissioned contract
     modifier onlyPermissionedContract() {
+        // Must be in the set of contracts whitelisted in the SyndicateDeployerV1 contract
         require(
             i_syndicateDeployer.isPermissionedContract(msg.sender),
             "Unauthorized: Not a permissioned contract address"
         );
+        // If the default whitelist isn't permissioned, the contract must also be in the Syndicate Token's custom whitelist as well
         if (!_defaultWhitelist) {
             require(
                 _whitelistedContracts[msg.sender],
@@ -116,6 +123,7 @@ contract SyndicateTokenV1 is ERC20, ISyndicateTokenV1, ReentrancyGuard {
         _;
     }
 
+    /// @notice Access controls for fee reduction function which should only be callable by the Syndicate contract ecosystem owner
     modifier onlySyndicateEcosystemOwner() {
         require(
             i_syndicateDeployer.getOwner() == msg.sender,

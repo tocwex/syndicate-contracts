@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: GPLv3
 pragma solidity ^0.8.19;
 
-// TODO Go over the indexing of event parameters to confirm design
-
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 /// @title Syndicate Fungible Token Contract Interface V1
 /// @notice This is the interface for a SyndicateTokenV1 contract, to be launched from a SyndicateDeployerV1 factory contract and registered in the SyndicateRegistry contract
-/// @dev All addresses registered in the SyndicateRegistry by a SyndicateDeployerV1 should be callable using this interface. DM ~sarlev-sarsen on urbit for details.
+/// @dev All addresses registered in the SyndicateRegistry by a SyndicateDeployerV1 should be callable using this interface.
+/// @custom:author ~sarlev-sarsen -- DM on the urbit network for further details
+
 interface ISyndicateTokenV1 {
     ////////////
     // Events //
