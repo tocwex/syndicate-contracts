@@ -2,7 +2,6 @@
 
 pragma solidity ^0.8.19;
 
-// TODO implment reentrancy guards
 // TODO add natspec for internal functions
 
 import {ReentrancyGuard} from "../lib/openzepplin-contracts/contracts/security/ReentrancyGuard.sol";
@@ -413,7 +412,7 @@ contract SyndicateTokenV1 is ERC20, ISyndicateTokenV1, ReentrancyGuard {
         );
 
         require(success, "Dissolution of syndicate failed");
-        emit SyndicateDissolved(block.number);
+        emit SyndicateDissolved({blockheight: block.number});
         return success;
     }
 
@@ -431,7 +430,7 @@ contract SyndicateTokenV1 is ERC20, ISyndicateTokenV1, ReentrancyGuard {
     ) internal returns (bool success) {
         _whitelistedContracts[contractAddress] = false;
         success = true;
-        emit contractRemovedFromWhitelist({contractAddress: contractAddress});
+        emit ContractRemovedFromWhitelist({contractAddress: contractAddress});
         return success;
     }
 
