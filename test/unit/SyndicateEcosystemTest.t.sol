@@ -721,7 +721,14 @@ contract SyndicateEcosystemTest is Test {
         deployerV1.proposeFeeChange(300, 6600);
         uint256 thisBlock = block.number;
         console2.log("Blockheight is: ", thisBlock);
-        vm.expectRevert("Unauthorized: rate change still timelocked");
+        vm.expectRevert("Unauthorized: Rate change still timelocked");
+        deployerV1.changeFee();
+    }
+
+    function test_RevertOnAttemptFeeChangeImmediatelyWithoutProposal() public {
+        _registerDeployer();
+        vm.startPrank(owner);
+        vm.expectRevert("Unauthorized: Fee must be proposed first");
         deployerV1.changeFee();
     }
 
@@ -729,7 +736,7 @@ contract SyndicateEcosystemTest is Test {
         _registerDeployer();
         vm.startPrank(owner);
         vm.expectRevert(
-            "Unauthorized: proposed delay must be at least 6600 blocks"
+            "Unauthorized: Proposed delay must be at least 6600 blocks"
         );
         deployerV1.proposeFeeChange(300, 600);
     }
