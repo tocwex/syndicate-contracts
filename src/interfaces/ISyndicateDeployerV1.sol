@@ -3,8 +3,7 @@
 pragma solidity ^0.8.19;
 
 /// @title Interface for Syndicate Deployer
-/// @author @thelifeandtimes
-/// @notice deploys syndicate tokens associated with onchain Urbit identities
+/// @notice Interface definition of V1 contract for deploying syndicate tokens associated with onchain Urbit identities
 /// @custom:author ~sarlev-sarsen -- DM on the urbit network for further details
 
 interface ISyndicateDeployerV1 {
