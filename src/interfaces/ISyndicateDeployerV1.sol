@@ -184,7 +184,6 @@ interface ISyndicateDeployerV1 {
     /// @return success Whether the function succeeded; recieving a false would be unexpected as the intended behavior is for a transaction to revert instead
     function addPermissionedContract(address contractAddress) external returns (bool success);
 
-    // TODO add natspec
     /// @notice Add an address to the permissioned contract mapping
     /// @dev As Syndicate Token's may be dependent on a permissioned contract for their minting functionality and related valuation, removals of permissioned contracts should be heavily vetted prior to execution
     /// @dev As this removes contracts to a mapping, track event emissions to collate the full set of permissioned contracts
@@ -192,7 +191,6 @@ interface ISyndicateDeployerV1 {
     /// @return success Whether the function succeeded; recieving a false would be unexpected as the intended behavior is for a transaction to revert instead
     function removePermissionedContract(address contractAddress) external returns (bool success);
 
-    // TODO add natspec
     /// @notice Dissolve Syndicate in Registry
     /// @dev Should only be callable by the Syndicate associated with the azimuthPoint value being provided as an input parameter
     /// @param azimuthPoint The tokenId of the Syndicate to be removed from the registry

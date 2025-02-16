@@ -24,24 +24,44 @@ contract SyndicateDeployerV1 is ISyndicateDeployerV1, ReentrancyGuard {
     //// Constants ////
     ///////////////////
 
+    /// @notice Contract address for ERC6551 Tokenbound Account Registry implementation
+    /// @dev Address is generated using CREATE2 and is the cannonical multichain address
     IERC6551Registry private constant TBA_REGISTRY = IERC6551Registry(0x000000006551c19487814612e58FE06813775758);
+
+    /// @notice Number of blocks used for timelocking fee changes
+    /// @dev The 6600 number is approximately 1 day
     uint256 private constant MIN_FEE_TIMELOCK = 6600;
 
     ////////////////////
     //// Immutables ////
     ////////////////////
 
+    /// @notice contract address for Syndicate Registry singleton
     ISyndicateRegistry private immutable i_registry;
+
+    /// @notice contract address for deriving ownership of Azimuth Points / Urbit IDs
+    // TODO Look into the questions around impacts of ecliptic.eth self-destructing?
     IERC721 private immutable i_azimuthContract;
 
     /////////////////////////////////
     //// Regular State Variables ////
     /////////////////////////////////
 
+    /// @notice Address of recipient of protocol fees for Syndicate Tokens launched from this deployer
+    /// @dev Updates to this address will impact the recipient for all future mints of any Syndicate Tokens launched from this contract
     address private _feeRecipient;
+
+    /// @notice The protocol fee rate
+    /// @dev The fee rate is used in the contructor of SyndicateTokenV1 contracts to set the max fee; it can only be reduced from there, and can be reduced on a case-by-case basis.
     uint256 private _feeRate;
+
+    /// @notice A proposed updated amount for the fee rate
     uint256 private _proposedFeeRate;
+
+    /// @notice The blockheight at which a new fee is allowed to go into effect
     uint256 private _rateChangeBlockheight;
+
+    /// @notice Boolean indicating if beta mode is on and the associated whitelist will be enforced
     bool private _betaMode = true;
 
     //////////////

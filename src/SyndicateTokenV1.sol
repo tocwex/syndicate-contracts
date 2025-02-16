@@ -21,32 +21,64 @@ contract SyndicateTokenV1 is ERC20, ISyndicateTokenV1, ReentrancyGuard {
     //// Constants ////
     ///////////////////
 
+    /// @notice Basis points value used in fee calcalations
     uint256 private constant BASIS_POINTS = 10000;
 
     ////////////////////
     //// Immutables ////
     ////////////////////
 
+    /// @notice Syndicate Deployer contract
+    /// @dev Factory deployer contract from which this Syndicate Token was launched
     ISyndicateDeployerV1 public immutable i_syndicateDeployer;
+
+    /// @notice Azimuth Point / Urbit ID associated with this Syndicate Token
     uint256 private immutable i_azimuthPoint;
+
+    /// @notice Max protocol fee from initial launch
+    /// @dev Denominated in basis points, i.e. 300 is a 3.00% fee
     uint256 private immutable i_protocolFeeMax;
 
     /////////////////////////////////
     //// Regular State Variables ////
     /////////////////////////////////
 
+    /// @notice The max possible supply
+    /// @dev May only be set once, unless initially set to `type(uint256).max` on contract launch
     uint256 private _maxSupply;
+
+    /// @notice The current protocol fee in basis points
     uint256 private _protocolFeeCurrent;
+
+    /// @notice The ownership address of the Syndicate Token
+    /// @dev This will always be a TBA associated with the Urbit ID's tokenId
+    /// @dev Hostile / malicious TBA implementations are possible which can mean loss of practical control by an Urbit's owner if they transfer ownership to an address using a malicious implementation of IERC6551Account
     address private _owner;
+
+    /// @notice Boolean indicating if a maxSupply has been set
+    /// @dev If _maxSupply != type(uint256).max, this value will be true, else either boolean is possible
     bool private _setCap;
+
+    /// @notice Boolean indicating if this token is the cannonical Syndicate Token for it's Urbit ID
+    /// @dev This value is set to false when a Syndicate is dissolved. Recommended behavior here is to ignore contracts where this value is set to false as they will not function correctly with the registry or deployer contracts
     bool private _isCannonical = true;
+
+    /// @notice Boolean for use of Deployer permissioned contract whitelist
+    /// @dev Default value is to set it to false, so Syndicate Token contract owner must whitelist any permissioned contracts prior to allowing permissionedMint functionality
     bool private _defaultWhitelist = false;
+
+    /// @notice Boolean to check if the owner has minting permssions
+    /// @dev While having a maxSupply set is one way to signal protections against inflating away the circulating supply, enabling the owner to renounce minting rights while allowing permissioned contracts enables alternative token supply designs
     bool private _ownerMintable = true;
 
     //////////////
     // Mappings //
     //////////////
 
+    /// @notice Set of contract addresses in custom whitelist
+    /// @dev Key: address of smart contract allowed to call permissionedMint functions
+    /// @dev Value: boolean indicating inclusion in the whitelist
+    /// @dev Whitelisted contracts must also be in the deployer's list of permissioned contracts in order to call protected functions
     mapping(address => bool) private _whitelistedContracts;
 
     ///////////////

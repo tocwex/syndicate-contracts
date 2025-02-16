@@ -25,8 +25,15 @@ contract SyndicateRegistry is ISyndicateRegistry, ReentrancyGuard {
     //// Regular State Variables ////
     /////////////////////////////////
 
+    /// @notice Contract owner for Syndicate Ecosystem
+    /// @dev Controls all admin functions of the registry contract, and may have elevated perms for deployers
     address private _owner;
+
+    /// @notice Proposed new owner for Syndicate Ecosystem
     address private _pendingOwner;
+
+    /// @notice Array of addresses for registered syndicate deployers
+    /// @dev Should have a {SyndicateDeployerData} struct in a mapping for additional details
     address[] private _syndicateDeployers;
 
     //////////////
