@@ -195,16 +195,6 @@ contract SyndicateRegistry is ISyndicateRegistry, ReentrancyGuard {
         return _renounceOwnership();
     }
 
-    // TODO Decide if we want to use this
-    function executeCall(address target, bytes calldata data)
-        external
-        onlyOwner
-        nonReentrant
-        returns (bool success, bytes memory result)
-    {
-        return _executeCall(target, data);
-    }
-
     /// @inheritdoc ISyndicateRegistry
     function getOwner() external view returns (address owner) {
         return _owner;
@@ -538,31 +528,12 @@ contract SyndicateRegistry is ISyndicateRegistry, ReentrancyGuard {
         return success;
     }
 
-    /// TODO Decide if this is functionality that we actually want to have...
-    function _executeCall(address target, bytes calldata data) internal returns (bool success, bytes memory result) {
-        // Add basic checks
-        require(target != address(0), "Invalid target");
-        require(target != address(this), "Cannot call self");
-
-        // Log attempt
-        emit ExternalCallAttempted(target, data);
-
-        // Make call
-        (success, result) = target.call(data);
-        require(success, "Call failed");
-
-        // Log result
-        emit ExternalCallExecuted(target, data, success);
-
-        return (success, result);
-    }
-
     /////////////////
     //// Receive ////
     /////////////////
 
     receive() external payable {
-        revert("Direct ETH transfers not accepted"); // TK we could make this a donation to the registry owner?
+        revert("Direct ETH transfers not accepted");
     }
 
     //////////////////
@@ -570,6 +541,6 @@ contract SyndicateRegistry is ISyndicateRegistry, ReentrancyGuard {
     //////////////////
 
     fallback() external payable {
-        revert("Function does not exist"); // TK we could make this a donation to the registry owner as well?
+        revert("Function does not exist");
     }
 }

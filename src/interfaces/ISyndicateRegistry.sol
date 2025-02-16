@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: GPLv3
 
-// TODO Finish Natspec
 pragma solidity ^0.8.19;
 
 /// @title Syndicate Ecosystem Registry Interface
@@ -137,12 +136,6 @@ interface ISyndicateRegistry {
     /// @param previousOwner The address that ultimately renounced ownership of the registry
     event OwnershipRenounced(address indexed previousOwner);
 
-    // TODO add natspec
-    event ExternalCallAttempted(address indexed target, bytes data);
-
-    // TODO add natspec
-    event ExternalCallExecuted(address indexed target, bytes data, bool success);
-
     ////////////////////////
     // External Functions //
     ////////////////////////
@@ -224,9 +217,6 @@ interface ISyndicateRegistry {
     /// @return success Confirmation of renouncing ownership to the null address
     function renounceOwnership() external returns (bool success);
 
-    // TODO add natspec
-    function executeCall(address target, bytes calldata data) external returns (bool success, bytes memory result);
-
     /// @notice Getter fuction for _owner private state variable
     /// @return owner Ownership address of Registry contract which has the rights to add new deployers to the registry
     function getOwner() external view returns (address owner);
@@ -261,7 +251,7 @@ interface ISyndicateRegistry {
     /// @notice getter function to check if a syndicate token exists for a given Azimuth Point
     /// @dev this checks if there is a Syndicate Token currently registered; it does not return true if a syndicate has been launched but dissolved.
     /// @param azimuthPoint The tokenId of an Urbit ID
-    /// @return A boolean indicating if a syndicate token exists
+    /// @return syndicateExists A boolean indicating if a syndicate token exists
     function getSyndicateTokenExistsUsingAzimuthPoint(uint256 azimuthPoint)
         external
         view
@@ -358,7 +348,7 @@ interface ISyndicateRegistry {
 
     /// @notice Get the deployer version for a provided Syndicate Token
     /// @param checkAddress A suspected Syndicate Token address
-    /// @return The deployer version used to launch the Syndicate Token
+    /// @return syndicateDeployerVersion The deployer version used to launch the Syndicate Token
     function getSyndicateTokenDeployerVersionUsingAddress(address checkAddress)
         external
         view

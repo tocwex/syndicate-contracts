@@ -485,13 +485,13 @@ contract SyndicateDeployerV1 is ISyndicateDeployerV1, ReentrancyGuard {
     //// Receive ////
     /////////////////
     receive() external payable {
-        revert("Direct ETH transfers not accepted"); // TK we could make this a donation to the registry owner?
+        revert("Direct ETH transfers not accepted");
     }
 
     //////////////////
     //// Fallback ////
     //////////////////
     fallback() external payable {
-        revert("Function does not exist"); // TK we could make this a donation to the registry owner as well?
+        revert("Function does not exist");
     }
 }
