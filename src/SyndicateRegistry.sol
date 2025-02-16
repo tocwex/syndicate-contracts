@@ -33,31 +33,58 @@ contract SyndicateRegistry is ISyndicateRegistry, ReentrancyGuard {
     // Mappings //
     //////////////
 
-    mapping(address => SyndicateDeployerData) private _deployerData; // Deployer address => deployer data
-    mapping(uint256 => Syndicate) private _syndicate; // azimuthPoint => syndicate token contract struct
-    mapping(address => uint256) private _addressToAzimuthPoint; // syndicate token address to azimuth point
-    mapping(address => bool) private _isRegisteredDeployer; // check if address is a registered deployer
-    mapping(address => bool) private _isActiveDeployer; // check if address is an active deployer
+    /// @notice Registered Syndicate Deployer contract address
+    /// @dev see ISyndicateRegistry {SyndicateDeployerData} struct for details
+    /// @dev Key: address of the deployer contract
+    /// @dev Value: Registered data of the deployer contract
+    mapping(address => SyndicateDeployerData) private _deployerData;
+
+    /// @notice Azimuth Point to registered SyndicateDeployerData
+    /// @dev see ISyndicateRegistry {Syndicate} struct for details
+    /// @dev Key: tokenId of the associated Urbit ID / Azimuth Point
+    /// @dev Value: Registered data of the related Syndicate Token ERC20 contract
+    mapping(uint256 => Syndicate) private _syndicate;
+
+    /// @notice Registered Syndicate Token Contract address
+    /// @dev Invalid addresses will return 0, as will ~zod's syndicate; if an address returns 0, check it against the Syndicte mapping
+    /// @dev Key: Address of Syndicate Token ERC20 contract
+    /// @dev Value: tokenId of the associated Urbit ID / Azimuth Point
+    mapping(address => uint256) private _addressToAzimuthPoint;
+
+    /// @notice Check if registered Syndicate Deployer
+    /// @dev Key: Contract address of Syndicate Deployer
+    /// @dev Value: Boolean returns true if provided address is a registered Syndicate Deployer contract
+    mapping(address => bool) private _isRegisteredDeployer;
+
+    /// @notice Check if active Syndicate Deployer
+    /// @dev Inactive deployers cannot launch additional Syndicate token contracts
+    /// @dev Key: Contract address of Syndicate Deployer
+    /// @dev Value: Boolean returns true if provided address is a registered Syndicate Deployer contract
+    mapping(address => bool) private _isActiveDeployer;
 
     ///////////////
     // Modifiers //
     ///////////////
 
+    /// @notice Access controls for functions only callable by the contract owner
     modifier onlyOwner() {
         require(msg.sender == _owner, "Unauthorized: Only registry owner");
         _;
     }
 
+    /// @notice Access controls such that only a proposed owner may call fuctions protected by this modifier
     modifier onlyPendingOwner() {
         require(msg.sender == _pendingOwner, "Unauthorized: Only Pending Owner");
         _;
     }
 
+    /// @notice Access controls such that only a valid, aka 'registered' deployer may call functions protected by this modifier
     modifier onlyValidDeployer() {
         require(_isRegisteredDeployer[msg.sender], "Unauthorized: Only registered deployers");
         _;
     }
 
+    /// @notice Access controls such that only a valid, and active, deployer may call functions protected by this modifier
     modifier onlyActiveDeployer() {
         require(_isActiveDeployer[msg.sender], "Unauthorized: Only active deployers");
         _;
@@ -360,6 +387,8 @@ contract SyndicateRegistry is ISyndicateRegistry, ReentrancyGuard {
     // Internal Functions //
     ////////////////////////
 
+    /// @notice Core deployer registration function
+    /// @dev Deployers cannot be unregistered, only deactivated
     function _registerDeployer(SyndicateDeployerData calldata syndicateDeployerData) internal returns (bool success) {
         require(syndicateDeployerData.deployerAddress != address(0), "Deployer is not at the null address");
         require(!_isRegisteredDeployer[syndicateDeployerData.deployerAddress], "Deployer is already registered");
@@ -375,6 +404,7 @@ contract SyndicateRegistry is ISyndicateRegistry, ReentrancyGuard {
         return true;
     }
 
+    /// @notice Core deployer deactivation function
     function _deactivateDeployer(SyndicateDeployerData calldata syndicateDeployerData)
         internal
         returns (bool success)
@@ -390,6 +420,7 @@ contract SyndicateRegistry is ISyndicateRegistry, ReentrancyGuard {
         return success;
     }
 
+    /// @notice Core deployer reactivation function
     function _reactivateDeployer(SyndicateDeployerData calldata syndicateDeployerData)
         internal
         returns (bool success)
@@ -406,12 +437,14 @@ contract SyndicateRegistry is ISyndicateRegistry, ReentrancyGuard {
         return success;
     }
 
+    /// @notice Core function for registering a Syndicate Token on launch
+    /// @dev Callable only if no Syndicate Token yet exists
     function _registerSyndicate(Syndicate calldata syndicate) internal returns (bool success) {
         _syndicate[syndicate.azimuthPoint] = syndicate;
         _addressToAzimuthPoint[syndicate.syndicateContract] = syndicate.azimuthPoint;
         success = true;
         emit SyndicateRegistered({
-            deployerAddress: msg.sender, // TODO triple check only the correct deployer can call this function
+            deployerAddress: msg.sender,
             syndicateToken: syndicate.syndicateContract,
             owner: syndicate.syndicateOwner,
             azimuthPoint: syndicate.azimuthPoint
@@ -419,6 +452,8 @@ contract SyndicateRegistry is ISyndicateRegistry, ReentrancyGuard {
         return success;
     }
 
+    /// @notice Functionality to update Syndicate ownership records in the registry
+    /// @dev See {SyndicateOwnerUpdated} event for indexing info as only 3 parameters are able to be indexed
     function _updateSyndicateOwnerRegistration(address syndicateToken, address newOwner)
         internal
         returns (bool success)
@@ -435,6 +470,8 @@ contract SyndicateRegistry is ISyndicateRegistry, ReentrancyGuard {
         return success;
     }
 
+    /// @notice functionality for removing a Syndicate Token from the registry
+    /// @dev Listen for these events in any interface that claims to index the existance of Syndicates
     function _dissolveSyndicate(Syndicate calldata syndicate) internal returns (bool success) {
         address deletedSyndicate = _syndicate[syndicate.azimuthPoint].syndicateContract;
 
@@ -451,6 +488,8 @@ contract SyndicateRegistry is ISyndicateRegistry, ReentrancyGuard {
         return success;
     }
 
+    /// @notice Core functionality for proposing a new Syndicate contract ecosystem ownership address
+    /// @dev Ownership control is recommended to be held by a multisig or other highly secure key management mechanism
     function _proposeNewOwner(address proposedOwner) internal returns (bool success) {
         _pendingOwner = proposedOwner;
         success = true;
@@ -458,6 +497,7 @@ contract SyndicateRegistry is ISyndicateRegistry, ReentrancyGuard {
         return success;
     }
 
+    /// @notice Core functionality for accepting ecosystem ownership rights
     function _acceptOwnership() internal returns (bool success) {
         address previousOwner = _owner;
         address newOwner = _pendingOwner;
@@ -468,6 +508,7 @@ contract SyndicateRegistry is ISyndicateRegistry, ReentrancyGuard {
         return success;
     }
 
+    /// @notice Option for rejecting ownership rights offering by the proposed owner
     function _rejectOwnership() internal returns (bool success) {
         address retainedOwner = _owner;
         address proposedOwner = _pendingOwner;
@@ -477,6 +518,7 @@ contract SyndicateRegistry is ISyndicateRegistry, ReentrancyGuard {
         return success;
     }
 
+    /// @notice Option for revoking ownership offering by current owner
     function _nullifyProposal() internal returns (bool success) {
         address retainedOwner = _owner;
         address proposedOwner = _pendingOwner;
@@ -486,6 +528,8 @@ contract SyndicateRegistry is ISyndicateRegistry, ReentrancyGuard {
         return success;
     }
 
+    /// @notice Core functionality for renouncing ecosystem ownership
+    /// @dev Note that this is a destructive action which makes it impossible to register addtional deployer contracts. It may also make it impossible to take some permissioned actions on deployer contracts, such as fee rate modifications or more.
     function _renounceOwnership() internal returns (bool success) {
         address previousOwner = _owner;
         _owner = address(0);
@@ -494,6 +538,7 @@ contract SyndicateRegistry is ISyndicateRegistry, ReentrancyGuard {
         return success;
     }
 
+    /// TODO Decide if this is functionality that we actually want to have...
     function _executeCall(address target, bytes calldata data) internal returns (bool success, bytes memory result) {
         // Add basic checks
         require(target != address(0), "Invalid target");
