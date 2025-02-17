@@ -97,6 +97,7 @@ contract SyndicateTokenV1 is ERC20, ISyndicateTokenV1, ReentrancyGuard {
         require(
             i_syndicateDeployer.isPermissionedContract(msg.sender), "Unauthorized: Not a permissioned contract address"
         );
+
         // If the default whitelist isn't permissioned, the contract must also be in the Syndicate Token's custom whitelist as well
         if (!_defaultWhitelist) {
             require(_whitelistedContracts[msg.sender], "Unauthorized: Not in Syndicate custom whitelist");
@@ -123,23 +124,42 @@ contract SyndicateTokenV1 is ERC20, ISyndicateTokenV1, ReentrancyGuard {
     // Constructor //
     /////////////////
 
+    /// @notice Constructor for Syndicate Token V1 ERC20 Contract
+    /// @dev See SyndicateDeployerV1 contract for additional details
+    /// @param deployerAddress Provided by the `deploySyndicate()` function from SyndicateDeployerV1
+    /// @param owner Validated address of TBA using TBA implementation address in the deployer whitelist
+    /// @param initialSupply Amount to be minted to owner upon deployment
+    /// @param maxSupply Optional supply cap, which may be set later as well
+    /// @param azimuthPoint Validated to not have existing Syndicate Token, and be associated with validated TBA
+    /// @param protocolFee Provided by the `deploySyndicate()` function from SyndicateDeployerV1
+    /// @param name Validated characters include upper and lowercase alphabet, numerals 0-9, plus special characters  `~`, ` `, and `-`
+    /// @param symbol Validated characters include uppercase alphabet, numerals 0-9, plus special characters `~`, and `-`
     constructor(
-        address deployerAddress, // Provided by the `deploySyndicate()` function from SyndicateDeployerV1
-        address owner, // validated address of TBA using TBA implementation address in the deployer whitelist
+        address deployerAddress,
+        address owner,
         uint256 initialSupply,
         uint256 maxSupply,
-        uint256 azimuthPoint, // validated to not have existing Syndicate token, and be associated with validated TBA
-        uint256 protocolFee, // provided by the `deploySyndicate()` function from SyndicateDeployerV1
+        uint256 azimuthPoint,
+        uint256 protocolFee, //
         string memory name,
         string memory symbol
     ) ERC20(name, symbol) {
+        // Parameter checks
         require(msg.sender == deployerAddress, "Syndicate Tokens must be deployed from the Syndicate factory contract");
         require(protocolFee <= 10000, "Protocol Fee cannot be greater than 100%");
         require(isValidName(name), "Invalid name: Must be <50 approved characters");
         require(isValidSymbol(symbol), "Invalid symbol: Must be <16 approved characters");
 
+        // Set immutables
+        i_azimuthPoint = azimuthPoint;
+        i_protocolFeeMax = protocolFee;
         i_syndicateDeployer = ISyndicateDeployerV1(deployerAddress);
+
+        // Set initial state variables
         _owner = owner;
+        _protocolFeeCurrent = protocolFee;
+
+        // Capped supply logic
         if (maxSupply == type(uint256).max) {
             _maxSupply = maxSupply;
             _setCap = false;
@@ -148,10 +168,9 @@ contract SyndicateTokenV1 is ERC20, ISyndicateTokenV1, ReentrancyGuard {
             _setCap = true;
             emit TokenMaxSupplySet({maxSupply: maxSupply});
         }
-        i_azimuthPoint = azimuthPoint;
-        i_protocolFeeMax = protocolFee;
-        _protocolFeeCurrent = protocolFee;
-        _mint(owner, initialSupply); // totalSupply is managed by _mint and _burn fuctions
+
+        // Distribute initial supply to Syndicate Owner
+        _mint(owner, initialSupply);
     }
 
     ////////////////////////
@@ -239,6 +258,7 @@ contract SyndicateTokenV1 is ERC20, ISyndicateTokenV1, ReentrancyGuard {
     function setMaxSupply(uint256 setCap) external onlyOwner returns (bool success) {
         require(!_setCap, "Token max supply already set");
         require(setCap >= totalSupply(), "Max supply must be greater than or equal to current total supply");
+
         return _setMaxSupply(setCap);
     }
 
@@ -310,13 +330,17 @@ contract SyndicateTokenV1 is ERC20, ISyndicateTokenV1, ReentrancyGuard {
     /// @dev Note that the amount parameter input is *prior* to fees, so if you want to have the account recieve a specific amount based on user input and have the fee displayed separately, you will need to handle the calculation on the front end.
     function _mint(address account, uint256 amount) internal override {
         require(totalSupply() + amount <= _maxSupply, "ERC20: Mint over maxSupply limit");
+
+        // Calculate fees
         uint256 fee_ = (amount * _protocolFeeCurrent) / BASIS_POINTS;
         uint256 amount_ = amount - fee_;
 
+        // Retrieve fee recipient address from deployer contract
         address feeRecipient = i_syndicateDeployer.getFeeRecipient();
 
         super._mint(account, amount_);
         super._mint(feeRecipient, fee_);
+
         emit MintFeeIncurred({feeRecipient: feeRecipient, fee: fee_});
     }
 
@@ -324,6 +348,7 @@ contract SyndicateTokenV1 is ERC20, ISyndicateTokenV1, ReentrancyGuard {
     /// @dev This function does not incurr the protocol fee, rather it is expected that permissionedContract(s) will implement their own fee or revenue models.
     function _permissionedMint(address account, uint256 amount) internal {
         require(totalSupply() + amount <= _maxSupply, "ERC20: Mint over maxSupply limit");
+
         super._mint(account, amount);
     }
 
@@ -343,13 +368,15 @@ contract SyndicateTokenV1 is ERC20, ISyndicateTokenV1, ReentrancyGuard {
             _permissionedMint(account[i], amount[i] - fee);
         }
 
-        require(totalSupply() + totalAmount <= _maxSupply, "ERC20: Batch mint over maxSuply limit");
+        // Confirm total amount doesn't breach supply cap
+        require(totalSupply() + totalAmount <= _maxSupply, "ERC20: Batch mint over maxSupply limit");
 
         if (totalFee > 0) {
             address feeRecipient = i_syndicateDeployer.getFeeRecipient();
             _permissionedMint(feeRecipient, totalFee);
             emit BatchMintFeeIncurred({feeRecipient: feeRecipient, totalFees: totalFee});
         } else if (_protocolFeeCurrent > 0) {
+            // To protect against using rounding errors to do zero-fee minting, require some fee to be paid if the protocol fee rate is non-zero
             require(totalFee > 0, "Invalid Fee Calculation");
         }
     }
@@ -371,7 +398,7 @@ contract SyndicateTokenV1 is ERC20, ISyndicateTokenV1, ReentrancyGuard {
         require(totalSupply() + totalAmount <= _maxSupply, "ERC20: Batch mint over maxSupply limit");
     }
 
-    /// @notice Ownership Tokenbound Account adddress update functionality
+    /// @notice Ownership Tokenbound Account address update functionality
     /// @dev Sends call to the SyndicateRegistry contract via the SyndicateDeployerV1 contract
     function _updateOwnershipTba(address newOwner, address implementation, bytes32 salt)
         internal
@@ -400,7 +427,9 @@ contract SyndicateTokenV1 is ERC20, ISyndicateTokenV1, ReentrancyGuard {
     function _renounceMintingRights() internal returns (bool success) {
         _ownerMintable = false;
         success = true;
+
         emit MintingRightsRenounced({tokenOwner: msg.sender});
+
         return success;
     }
 
@@ -409,27 +438,33 @@ contract SyndicateTokenV1 is ERC20, ISyndicateTokenV1, ReentrancyGuard {
         _owner = address(0);
         if (_ownerMintable) {
             _ownerMintable = false;
+
             emit MintingRightsRenounced({tokenOwner: msg.sender});
         }
+
         if (!_setCap) {
             _setCap = true;
             emit TokenMaxSupplySet({maxSupply: _maxSupply});
         }
+
         success = true;
+
         emit OwnershipRenounced({lastOwner: msg.sender, blockheight: block.number});
+
         return success;
     }
 
     /// @notice Dissolve Syndicate Token relationship
     /// @dev A dissolved Syndicate Token still has access to all the various transfer functions, it just is removed from the registry and is marked as 'non-cannonical'
+    /// @dev A dissolved syndicate cannot change it's owner to a new Tokenbound account implementation
     function _dissolveSyndicate() internal returns (bool success) {
         require(_isCannonical, "Syndicate Token is already dissolved");
+        success = i_syndicateDeployer.dissolveSyndicateInRegistry(i_azimuthPoint);
+        require(success, "Dissolution of syndicate failed");
         _isCannonical = false;
 
-        success = i_syndicateDeployer.dissolveSyndicateInRegistry(i_azimuthPoint);
-
-        require(success, "Dissolution of syndicate failed");
         emit SyndicateDissolved({blockheight: block.number});
+
         return success;
     }
 
@@ -438,7 +473,9 @@ contract SyndicateTokenV1 is ERC20, ISyndicateTokenV1, ReentrancyGuard {
     function _addWhitelistedContract(address contractAddress) internal returns (bool success) {
         _whitelistedContracts[contractAddress] = true;
         success = true;
+
         emit ContractAddedToWhitelist({tokenOwner: msg.sender, contractAddress: contractAddress});
+
         return success;
     }
 
@@ -447,7 +484,9 @@ contract SyndicateTokenV1 is ERC20, ISyndicateTokenV1, ReentrancyGuard {
     function _removeWhitelistedContract(address contractAddress) internal returns (bool success) {
         _whitelistedContracts[contractAddress] = false;
         success = true;
+
         emit ContractRemovedFromWhitelist({tokenOwner: msg.sender, contractAddress: contractAddress});
+
         return success;
     }
 
@@ -455,7 +494,9 @@ contract SyndicateTokenV1 is ERC20, ISyndicateTokenV1, ReentrancyGuard {
     function _toggleDefaultWhitelist(bool state) internal returns (bool success) {
         _defaultWhitelist = state;
         success = true;
+
         emit ToggleDefaultWhitelist({tokenOwner: msg.sender, defaultsWhitelisted: state});
+
         return success;
     }
 
@@ -464,6 +505,7 @@ contract SyndicateTokenV1 is ERC20, ISyndicateTokenV1, ReentrancyGuard {
     function _reduceFee(uint256 newFee) internal returns (bool success) {
         require(newFee < i_protocolFeeMax, "Unauthorized: New fee must be lower than max protocol fee");
         require(newFee < _protocolFeeCurrent, "Unauthorized: New fee must be lower than current fee");
+
         _protocolFeeCurrent = newFee;
         success = true;
 
@@ -478,7 +520,9 @@ contract SyndicateTokenV1 is ERC20, ISyndicateTokenV1, ReentrancyGuard {
         _maxSupply = setCap;
         _setCap = true;
         success = true;
+
         emit TokenMaxSupplySet({maxSupply: setCap});
+
         return success;
     }
 

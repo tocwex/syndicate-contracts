@@ -101,6 +101,9 @@ contract SyndicateRegistry is ISyndicateRegistry, ReentrancyGuard {
     // Constructor //
     /////////////////
 
+    /// @notice Constructor for the Syndicate Ecosystem Registry Contract
+    /// @dev Registry contract is intended as the singleton contract for the Syndicate Ecosystem and should be the starting point for confirming validity of Urbit Syndicates
+    /// @dev Contract deployer is the initial owner; if deploying from a deployer contract, ensure that they contract is able to minimally call the `proposeNewOwner()` function to transfer ownership, else enable interacting with the ISyndicateRegistry interface.
     constructor() {
         // constructor sets initial owner
         _owner = msg.sender;
@@ -152,7 +155,9 @@ contract SyndicateRegistry is ISyndicateRegistry, ReentrancyGuard {
             _syndicate[syndicate.azimuthPoint].syndicateContract == address(0),
             "Azimuth point already has active syndicate"
         );
+
         success = _registerSyndicate(syndicate);
+
         return success;
     }
 
@@ -389,6 +394,7 @@ contract SyndicateRegistry is ISyndicateRegistry, ReentrancyGuard {
     function _registerDeployer(SyndicateDeployerData calldata syndicateDeployerData) internal returns (bool success) {
         require(syndicateDeployerData.deployerAddress != address(0), "Deployer is not at the null address");
         require(!_isRegisteredDeployer[syndicateDeployerData.deployerAddress], "Deployer is already registered");
+
         _syndicateDeployers.push(syndicateDeployerData.deployerAddress);
         _deployerData[syndicateDeployerData.deployerAddress] = syndicateDeployerData;
         _isRegisteredDeployer[syndicateDeployerData.deployerAddress] = true;
@@ -408,12 +414,16 @@ contract SyndicateRegistry is ISyndicateRegistry, ReentrancyGuard {
     {
         address deployer = syndicateDeployerData.deployerAddress;
         SyndicateDeployerData storage deployerData = _deployerData[deployer];
+
         require(_isRegisteredDeployer[deployer], "Deployer is not registered and thus cannot be deactivated");
         require(deployerData.isActive, "Deployer already inactive");
+
         deployerData.isActive = false;
         _isActiveDeployer[syndicateDeployerData.deployerAddress] = false;
         success = true;
+
         emit DeployerDeactivated(deployer, false);
+
         return success;
     }
 
@@ -424,13 +434,16 @@ contract SyndicateRegistry is ISyndicateRegistry, ReentrancyGuard {
     {
         address deployer = syndicateDeployerData.deployerAddress;
         SyndicateDeployerData storage deployerData = _deployerData[deployer];
+
         require(_isRegisteredDeployer[deployer], "Deployer is not registered and thus cannot be deactivated");
         require(!deployerData.isActive, "Deployer already active");
+
         deployerData.isActive = true;
         _isActiveDeployer[syndicateDeployerData.deployerAddress] = true;
-
         success = true;
+
         emit DeployerReactivated(deployer, true);
+
         return success;
     }
 
@@ -440,12 +453,14 @@ contract SyndicateRegistry is ISyndicateRegistry, ReentrancyGuard {
         _syndicate[syndicate.azimuthPoint] = syndicate;
         _addressToAzimuthPoint[syndicate.syndicateContract] = syndicate.azimuthPoint;
         success = true;
+
         emit SyndicateRegistered({
             deployerAddress: msg.sender,
             syndicateToken: syndicate.syndicateContract,
             owner: syndicate.syndicateOwner,
             azimuthPoint: syndicate.azimuthPoint
         });
+
         return success;
     }
 
@@ -458,12 +473,14 @@ contract SyndicateRegistry is ISyndicateRegistry, ReentrancyGuard {
         uint256 syndicatePoint = _addressToAzimuthPoint[syndicateToken];
         _syndicate[syndicatePoint].syndicateOwner = newOwner;
         success = true;
+
         emit SyndicateOwnerUpdated({
             deployerAddress: msg.sender,
             syndicateToken: syndicateToken,
             owner: newOwner,
             azimuthPoint: syndicatePoint
         });
+
         return success;
     }
 
@@ -476,12 +493,14 @@ contract SyndicateRegistry is ISyndicateRegistry, ReentrancyGuard {
         delete _syndicate[syndicate.azimuthPoint];
 
         success = true;
+
         emit SyndicateDissolved({
             deployerAddress: msg.sender,
             syndicateToken: syndicate.syndicateContract,
             owner: syndicate.syndicateOwner,
             azimuthPoint: syndicate.azimuthPoint
         });
+
         return success;
     }
 
@@ -490,7 +509,9 @@ contract SyndicateRegistry is ISyndicateRegistry, ReentrancyGuard {
     function _proposeNewOwner(address proposedOwner) internal returns (bool success) {
         _pendingOwner = proposedOwner;
         success = true;
+
         emit OwnerProposed({pendingOwner: proposedOwner, registryOwner: msg.sender});
+
         return success;
     }
 
@@ -501,7 +522,9 @@ contract SyndicateRegistry is ISyndicateRegistry, ReentrancyGuard {
         _owner = _pendingOwner;
         _pendingOwner = address(0);
         success = true;
+
         emit OwnerUpdated(previousOwner, newOwner);
+
         return success;
     }
 
@@ -511,7 +534,9 @@ contract SyndicateRegistry is ISyndicateRegistry, ReentrancyGuard {
         address proposedOwner = _pendingOwner;
         _pendingOwner = address(0);
         success = true;
+
         emit OwnershipRejected(proposedOwner, retainedOwner);
+
         return success;
     }
 
@@ -521,7 +546,9 @@ contract SyndicateRegistry is ISyndicateRegistry, ReentrancyGuard {
         address proposedOwner = _pendingOwner;
         _pendingOwner = address(0);
         success = true;
+
         emit ProposalNullified(retainedOwner, proposedOwner);
+
         return success;
     }
 
@@ -531,7 +558,9 @@ contract SyndicateRegistry is ISyndicateRegistry, ReentrancyGuard {
         address previousOwner = _owner;
         _owner = address(0);
         success = true;
+
         emit OwnershipRenounced(previousOwner);
+
         return success;
     }
 

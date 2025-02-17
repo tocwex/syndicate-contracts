@@ -68,9 +68,26 @@ contract SyndicateDeployerV1 is ISyndicateDeployerV1, ReentrancyGuard {
     // Mappings //
     //////////////
 
+    /// @notice Whitelist for early adopters live on the Urbit network
+    /// @dev Key: TokenId for the whitelisted Urbit ID, i.e. `@ud`~sampel-palnet
+    /// @dev Value: Boolean indicating inclusion in the whitelist, allowing access while beta mode is true
     mapping(uint256 => bool) private _betaWhitelist;
+
+    /// @notice Syndicate Tokens deployer from this factory contract
+    /// @dev Key: Contract address for Syndicate Token ERC20
+    /// @dev Value: Boolean indicating that the provided address is SyndicateTokenV1 ERC20 contract
     mapping(address => bool) private _deployedSyndicates;
+
+    /// @notice Whitelisted addresses allowed to access the permisisoned mint functions on a Syndicate Token
+    /// @dev Key: Contract address for permissioned contract
+    /// @dev Value: Boolean indicating that the provided address is a permissioned contract
     mapping(address => bool) private _permissionedContracts;
+
+    /// @notice Whitelisted addresses for IERC6551Account implementations allowed to launch a Syndicate Token
+    /// @dev The threshold for implementation addresses to be added to this whitelist is that the address MUST:
+    /// @dev A. Implement the IERC6551Account interface
+    /// @dev B. Enforce that `ownerOf()` for the given azimuthPoint is the only valid signer
+    /// @dev Whitelisting implementations that allow signers other than the controller of the intended Urbit ID may allow for the compromise of the Syndicate contract ecosystem
     mapping(address => bool) private _approvedImplementation;
 
     ///////////////
@@ -128,6 +145,12 @@ contract SyndicateDeployerV1 is ISyndicateDeployerV1, ReentrancyGuard {
     // Constructor //
     /////////////////
 
+    /// @notice Constructor for Syndicate Deployer V1 Factory Contract
+    /// @dev
+    /// @param registryAddress The Syndicate Ecosystem Registry singleton contract
+    /// @param azimuthContract The address to be used in TBA account validation
+    // TODO Implement the static address wrapper to protect against ecliptic upgrade self-destructing
+    /// @param fee Initial protocol fee rate
     constructor(address registryAddress, address azimuthContract, uint256 fee) {
         require(registryAddress != address(0), "Registry address cannot be zero");
         require(azimuthContract != address(0), "Azimuth contract address cannot be zero");
@@ -339,7 +362,9 @@ contract SyndicateDeployerV1 is ISyndicateDeployerV1, ReentrancyGuard {
 
         i_registry.registerSyndicate(syndicate);
         _deployedSyndicates[address(syndicateTokenV1)] = true;
+
         emit TokenDeployed({token: address(syndicateTokenV1), owner: tokenOwner, azimuthPoint: azimuthPoint});
+
         return address(syndicateTokenV1);
     }
 
@@ -347,7 +372,9 @@ contract SyndicateDeployerV1 is ISyndicateDeployerV1, ReentrancyGuard {
     /// @dev This function is responsible for updating ownership address info in the SyndicateRegistry
     function _registerTokenOwnerChange(address syndicateToken, address newOwner) internal returns (bool success) {
         success = i_registry.updateSyndicateOwnerRegistration(syndicateToken, newOwner);
+
         emit TokenOwnerChanged({token: syndicateToken, newOwner: newOwner});
+
         return success;
     }
 
@@ -387,7 +414,9 @@ contract SyndicateDeployerV1 is ISyndicateDeployerV1, ReentrancyGuard {
     function _changeFeeRecipient(address newFeeRecipient) internal returns (bool success) {
         _feeRecipient = newFeeRecipient;
         success = true;
+
         emit FeeRecipientUpdated({feeRecipient: newFeeRecipient});
+
         return success;
     }
 
@@ -396,6 +425,7 @@ contract SyndicateDeployerV1 is ISyndicateDeployerV1, ReentrancyGuard {
     function _toggleBetaMode(bool betaState) internal returns (bool success) {
         _betaMode = betaState;
         success = true;
+
         emit BetaModeChanged({betaMode: betaState});
 
         return success;
@@ -415,7 +445,7 @@ contract SyndicateDeployerV1 is ISyndicateDeployerV1, ReentrancyGuard {
     /// @notice Removes Tokenbound account implementation from approvedImplementation mapping
     /// @dev Track RemovedTbaImplementation event to follow state of the approved addresses
     function _removeApprovedTbaImplementation(address contractAddress) internal returns (bool success) {
-        _approvedImplementation[contractAddress] = true;
+        _approvedImplementation[contractAddress] = false;
         success = true;
 
         emit RemovedTbaImplementation({tbaImplementationAddress: contractAddress, deployerOwner: msg.sender});
@@ -438,10 +468,13 @@ contract SyndicateDeployerV1 is ISyndicateDeployerV1, ReentrancyGuard {
     /// @dev Track AzimuthPointRemovedFromWhitelist events to follow state of the approved Urbit IDs
     function _batchWhitelistPoints(uint256[] calldata azimuthPoint) internal returns (bool success) {
         require(azimuthPoint.length > 0, "Empty array");
+
         for (uint256 i = 0; i < azimuthPoint.length; i++) {
             _betaWhitelist[azimuthPoint[i]] = true;
+
             emit AzimuthPointAddedToWhitelist({azimuthPoint: azimuthPoint[i]});
         }
+
         success = true;
 
         return success;
@@ -463,7 +496,9 @@ contract SyndicateDeployerV1 is ISyndicateDeployerV1, ReentrancyGuard {
     function _addPermissionedContract(address contractAddress) internal returns (bool success) {
         _permissionedContracts[contractAddress] = true;
         success = true;
+
         emit PermissionedContractAdded({permissionedContract: contractAddress});
+
         return success;
     }
 
@@ -472,7 +507,9 @@ contract SyndicateDeployerV1 is ISyndicateDeployerV1, ReentrancyGuard {
     function _removePermissionedContract(address contractAddress) internal returns (bool success) {
         _permissionedContracts[contractAddress] = false;
         success = true;
+
         emit PermissionedContractRemoved({permissionedContract: contractAddress});
+
         return success;
     }
 
@@ -488,8 +525,10 @@ contract SyndicateDeployerV1 is ISyndicateDeployerV1, ReentrancyGuard {
         });
 
         emit DissolutionRequestSentToRegistry({azimuthPoint: azimuthPoint, syndicateToken: msg.sender});
+
         success = i_registry.dissolveSyndicate(syndicate);
         _deployedSyndicates[msg.sender] = false;
+
         return success;
     }
 
@@ -498,6 +537,7 @@ contract SyndicateDeployerV1 is ISyndicateDeployerV1, ReentrancyGuard {
     function _getDeployerStatus() internal view returns (bool isActive) {
         ISyndicateRegistry.SyndicateDeployerData memory syndicateDeployerData =
             i_registry.getDeployerData(address(this));
+
         return syndicateDeployerData.isActive;
     }
 
