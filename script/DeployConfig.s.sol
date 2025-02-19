@@ -17,6 +17,7 @@ contract DeployConfig is Script {
     }
 
     struct NetworkConfig {
+        address eclipticContract;
         address azimuthContract;
         address existingRegistryAddress;
         address existingDeployerAddress;
@@ -90,12 +91,14 @@ contract DeployConfig is Script {
         if (block.chainid == 31337) {
             // Local Anvil Devnet
             uint256 azimuthPoint = vm.envUint("ANVIL_AZIMUTH_POINT");
+            address eclipticContract = vm.envAddress("ANVIL_ECLIPTIC_CONTRACT");
             address azimuthContract = vm.envAddress("ANVIL_AZIMUTH_CONTRACT");
             address implementationAddress = vm.envAddress(
                 "ANVIL_TBA_IMPLEMENTATION"
             );
             return
                 NetworkConfig({
+                    eclipticContract: eclipticContract,
                     azimuthContract: azimuthContract,
                     existingRegistryAddress: address(0),
                     existingDeployerAddress: address(0),
@@ -114,12 +117,16 @@ contract DeployConfig is Script {
         } else if (block.chainid == 11155111) {
             // Sepolia Testnet
             uint256 azimuthPoint = vm.envUint("SEPOLIA_AZIMUTH_POINT");
+            address eclipticContract = vm.envAddress(
+                "SEPOLIA_ECLIPTIC_CONTRACT"
+            );
             address azimuthContract = vm.envAddress("SEPOLIA_AZIMUTH_CONTRACT");
             address implementationAddress = vm.envAddress(
                 "SEPOLIA_TBA_IMPLEMENTATION"
             );
             return
                 NetworkConfig({
+                    eclipticContract: eclipticContract,
                     azimuthContract: azimuthContract,
                     existingRegistryAddress: address(0),
                     existingDeployerAddress: address(0),
@@ -138,12 +145,16 @@ contract DeployConfig is Script {
         } else if (block.chainid == 1) {
             // Ethereum Mainnet
             uint256 azimuthPoint = vm.envUint("MAINNET_AZIMUTH_POINT");
+            address eclipticContract = vm.envAddress(
+                "MAINNET_ECLIPTIC_CONTRACT"
+            );
             address azimuthContract = vm.envAddress("MAINNET_AZIMUTH_CONTRACT");
             address implementationAddress = vm.envAddress(
                 "MAINNET_TBA_IMPLEMENTATION"
             );
             return
                 NetworkConfig({
+                    eclipticContract: eclipticContract,
                     azimuthContract: azimuthContract,
                     existingRegistryAddress: address(0),
                     existingDeployerAddress: address(0),

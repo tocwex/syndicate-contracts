@@ -4,9 +4,12 @@ pragma solidity ^0.8.19;
 
 // TODO handle the way ~zod lookups / getters function to account for the default value of tokenId being 0, aka `@ud`~zod
 import {ReentrancyGuard} from "../lib/openzepplin-contracts/contracts/security/ReentrancyGuard.sol";
+import {IERC721} from "../lib/openzepplin-contracts/contracts/token/ERC721/IERC721.sol";
+import {IERC165} from "../lib/openzepplin-contracts/contracts/interfaces/IERC165.sol";
 import {SyndicateTokenV1} from "./SyndicateTokenV1.sol";
 import {SyndicateDeployerV1} from "./SyndicateDeployerV1.sol";
 import {ISyndicateRegistry} from "./interfaces/ISyndicateRegistry.sol";
+import {IAzimuth} from "./interfaces/IAzimuth.sol";
 
 /// @title Syndicate Ecosystem Registry Contract
 /// @notice This is the primary registry contract for urbit's Syndicate ecosystem, designed to give a finite tokenspace for fungible tokens associated with urbit's finite address space and namespace
@@ -17,9 +20,13 @@ contract SyndicateRegistry is ISyndicateRegistry, ReentrancyGuard {
     // Storage Variables //
     ///////////////////////
 
-    ///////////////////
-    //// Constants ////
-    ///////////////////
+    ////////////////////
+    //// Immutables ////
+    ////////////////////
+
+    /// @notice The immutable address of azimuth
+    /// @dev provided as an immtable instead of a constant to support deploying to different chains/instances
+    IAzimuth private immutable i_azimuth;
 
     /////////////////////////////////
     //// Regular State Variables ////
@@ -104,9 +111,10 @@ contract SyndicateRegistry is ISyndicateRegistry, ReentrancyGuard {
     /// @notice Constructor for the Syndicate Ecosystem Registry Contract
     /// @dev Registry contract is intended as the singleton contract for the Syndicate Ecosystem and should be the starting point for confirming validity of Urbit Syndicates
     /// @dev Contract deployer is the initial owner; if deploying from a deployer contract, ensure that they contract is able to minimally call the `proposeNewOwner()` function to transfer ownership, else enable interacting with the ISyndicateRegistry interface.
-    constructor() {
+    constructor(address azimuthAddress) {
         // constructor sets initial owner
         _owner = msg.sender;
+        i_azimuth = IAzimuth(azimuthAddress);
     }
 
     ///////////////
@@ -205,6 +213,79 @@ contract SyndicateRegistry is ISyndicateRegistry, ReentrancyGuard {
     /// @inheritdoc ISyndicateRegistry
     function renounceOwnership() external onlyOwner returns (bool success) {
         return _renounceOwnership();
+    }
+
+    ///////////////////////////////////
+    // Azimuth Wrapper Functionality //
+    ///////////////////////////////////
+
+    /// @notice Implements static wrapper around Azimuth Ownership calls
+    /// @dev ERC6551 requires a static `tokenContract` address for account generation and validation calls. Urbit ID uses a two part design across azimuth.eth as the ownership ledger and ecliptic.eth as the business / transfer logic. Ecliptic.eth is also what implements the ERC721 standard and the IERC6551Account required `ownerOf()` method for Azimuth Point ownership, but it also self-destructs on upgrade which would strand any funds stored in TBAs that use Ecliptic's address (`0x33EeCbf908478C10614626A9D304bfe18B78DD73` at the time of this writing) as the `tokenContract` value. As this SyndicateRegistry contract is designed as an immutable singleton contract intended for use in conjunction with ERC6551 Tokenbound accounts, we implement `ownerOf()` method of the IERC721 interface which properly calls Azimuth to find the canonical Ecplitic and retrieve the ownership address of a given `tokenId`.
+    function eclipticContract() external view returns (IERC721 eclipticAddress) {
+        return _eclipticContract();
+    }
+
+    /// @notice Implements required IERC165 interface
+    function supportsInterface(bytes4 interfaceId) external pure returns (bool) {
+        return interfaceId == type(IERC721).interfaceId || interfaceId == type(IERC165).interfaceId;
+    }
+
+    //////////////////////////////////////////
+    //// IERC721 Interface Implementation ////
+    //////////////////////////////////////////
+
+    /// @notice Owner of the provided Urbit ID
+    /// @dev Required for signature validation of IERC6551Account implementations
+    function ownerOf(uint256 tokenId) external view returns (address urbitOwner) {
+        return _ownerOf(tokenId);
+    }
+
+    /// @notice Minimal implementation of `balanceOf()`
+    /// @dev Always reverts, to actually access, call the contract at ecliptic.eth
+    function balanceOf(address) external pure returns (uint256) {
+        revert("Call ecliptic.eth instead");
+    }
+
+    /// @notice Minimal implementation of `safeTransferFrom()` with calldata
+    /// @dev Always reverts, to actually access, call the contract at ecliptic.eth
+    function safeTransferFrom(address, address, uint256, bytes calldata) external pure {
+        revert("Call ecliptic.eth instead");
+    }
+
+    /// @notice Minimal implementation of `safeTransferFrom()` without calldata
+    /// @dev Always reverts, to actually access, call the contract at ecliptic.eth
+    function safeTransferFrom(address, address, uint256) external pure {
+        revert("Call ecliptic.eth instead");
+    }
+
+    /// @notice Minimal implementation of `transferFrom()`
+    /// @dev Always reverts, to actually access, call the contract at ecliptic.eth
+    function transferFrom(address, address, uint256) external pure {
+        revert("Call ecliptic.eth instead");
+    }
+
+    /// @notice Minimal implementation of `approve()`
+    /// @dev Always reverts, to actually access, call the contract at ecliptic.eth
+    function approve(address, uint256) external pure {
+        revert("Call ecliptic.eth instead");
+    }
+
+    /// @notice Minimal implementation of `setApprovalForAll()`
+    /// @dev Always reverts, to actually access, call the contract at ecliptic.eth
+    function setApprovalForAll(address, bool) external pure {
+        revert("Call ecliptic.eth instead");
+    }
+
+    /// @notice Minimal implementation of `getApproved()`
+    /// @dev Always reverts, to actually access, call the contract at ecliptic.eth
+    function getApproved(uint256) external pure returns (address) {
+        revert("Call ecliptic.eth instead");
+    }
+
+    /// @notice Minimal implementation of `isApprovedForAll()`
+    /// @dev Always reverts, to actually access, call the contract at ecliptic.eth
+    function isApprovedForAll(address, address) external pure returns (bool) {
+        revert("Call ecliptic.eth instead");
     }
 
     /// @inheritdoc ISyndicateRegistry
@@ -562,6 +643,20 @@ contract SyndicateRegistry is ISyndicateRegistry, ReentrancyGuard {
         emit OwnershipRenounced(previousOwner);
 
         return success;
+    }
+
+    /// @notice Get the current canonical Ecliptic
+    /// @dev Azimuth and Ecliptic reference one another, with Ecliptic implementing the ERC721 standard, while azimuth is the datastore.
+    /// @return currentEcliptic The owner of Azimuth and implementation of transfer/business logic.
+    function _eclipticContract() internal view returns (IERC721 currentEcliptic) {
+        currentEcliptic = IERC721(i_azimuth.owner());
+        return currentEcliptic;
+    }
+
+    /// @notice Core functionality to get ownership address for an Urbit ID
+    /// @dev implements `ownerOf()` logic for ERC721 standard by calling Ecliptic via Azimuth
+    function _ownerOf(uint256 tokenId) internal view returns (address urbitOwner) {
+        return _eclipticContract().ownerOf(tokenId);
     }
 
     /////////////////

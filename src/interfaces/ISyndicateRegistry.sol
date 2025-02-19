@@ -2,11 +2,13 @@
 
 pragma solidity ^0.8.19;
 
+import {IERC721} from "../../lib/openzepplin-contracts/contracts/token/ERC721/IERC721.sol";
+
 /// @title Syndicate Ecosystem Registry Interface
 /// @notice Interface definition for Registry of all deployed urbit Syndicate Tokens
 /// @custom:author ~sarlev-sarsen -- DM on the urbit network for further details
 
-interface ISyndicateRegistry {
+interface ISyndicateRegistry is IERC721 {
     /////////////
     // Structs //
     /////////////

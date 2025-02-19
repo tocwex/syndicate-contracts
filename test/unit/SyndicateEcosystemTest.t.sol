@@ -18,11 +18,13 @@ import {ERC6551Registry} from "../../lib/tokenbound/lib/erc6551/src/ERC6551Regis
 import {IERC6551Registry} from "../../lib/tokenbound/lib/erc6551/src/interfaces/IERC6551Registry.sol";
 import {ERC6551Account} from "../../lib/tokenbound/src/abstract/ERC6551Account.sol";
 import {IERC6551Account} from "../../lib/tokenbound/lib/erc6551/src/interfaces/IERC6551Account.sol";
+import {IAzimuth} from "../../src/interfaces/IAzimuth.sol";
 
 contract SyndicateEcosystemTest is Test {
     IERC6551Registry public tbaRegistry;
-    IERC721 public azimuthContract;
+    IERC721 public eclipticContract;
     IERC6551Account public tbaImplementation;
+    IAzimuth public azimuthContract;
 
     SyndicateRegistry public registry;
     SyndicateDeployerV1 public deployerV1;
@@ -54,8 +56,10 @@ contract SyndicateEcosystemTest is Test {
         alice = makeAddr("alice");
         bob = makeAddr("bob");
 
+        azimuthContract = IAzimuth(vm.envAddress("SEPOLIA_AZIMUTH_CONTRACT"));
+        eclipticContract = IERC721(vm.envAddress("SEPOLIA_ECLIPTIC_CONTRACT"));
+
         tbaRegistry = IERC6551Registry(vm.envAddress("SEPOLIA_TBA_REGISTRY"));
-        azimuthContract = IERC721(vm.envAddress("SEPOLIA_AZIMUTH_CONTRACT"));
         tbaImplementation = IERC6551Account(
             payable(vm.envAddress("SEPOLIA_TBA_IMPLEMENTATION"))
         );
@@ -63,14 +67,10 @@ contract SyndicateEcosystemTest is Test {
         syndicateOwner = vm.envAddress("SEPOLIA_PUBLIC_KEY_0");
 
         vm.startPrank(owner);
-        registry = new SyndicateRegistry();
+        registry = new SyndicateRegistry(address(azimuthContract));
         registryAddress = address(registry);
 
-        deployerV1 = new SyndicateDeployerV1(
-            address(registry),
-            address(azimuthContract),
-            FEE
-        );
+        deployerV1 = new SyndicateDeployerV1(registryAddress, FEE);
         deployerAddress = address(deployerV1);
 
         vm.stopPrank();
@@ -79,6 +79,10 @@ contract SyndicateEcosystemTest is Test {
         assertTrue(
             address(tbaRegistry).code.length > 0,
             "TBA Registry not deployed"
+        );
+        assertTrue(
+            address(eclipticContract).code.length > 0,
+            "Ecliptic not deployed"
         );
         assertTrue(
             address(azimuthContract).code.length > 0,
@@ -149,7 +153,7 @@ contract SyndicateEcosystemTest is Test {
                 implementation,
                 SALT,
                 block.chainid,
-                address(azimuthContract),
+                registryAddress,
                 tokenId
             );
     }
@@ -269,7 +273,6 @@ contract SyndicateEcosystemTest is Test {
             registry.isRegisteredDeployer(address(deployerV1)),
             "Is not registered deployment"
         );
-        // TODO add expect Emit
     }
 
     function test_RevertOnRegisterNewDeployerByNotOwner() public {
@@ -422,8 +425,17 @@ contract SyndicateEcosystemTest is Test {
         registry.registerSyndicate(syndicate);
     }
 
-    // TODO test_UpdateSyndicateTokenOwnerRegistryByInactiveDeployer
-    // TK Should Token Ownership be updatable by an inactive deployer? Methinks yes.
+    function test_WIPRetrieveOwnerOfFromEcpliticViaRegistryAndAzimuth() public {
+        uint256 samzodPoint = 1024;
+        address samzodOwner = registry.ownerOf(samzodPoint);
+        console2.log("The input azimuthPoint for samzod is: ", samzodPoint);
+        console2.log("~samzod's Owner is: ", samzodOwner);
+
+        uint256 fitdegPoint = 57973;
+        address fitdegOwner = registry.ownerOf(fitdegPoint);
+        console2.log("The input azimuthPoint for fitdeg is: ", fitdegPoint);
+        console2.log("~fitdeg's Owner is: ", fitdegOwner);
+    }
 
     //// Deployer Tests
     function test_DeactivateRegisteredDeployerByOwner() public {

@@ -19,9 +19,12 @@ contract DeploySyndicate is Script {
     SyndicateRegistry public registry;
     SyndicateDeployerV1 public deployerV1;
     SyndicateTokenV1 public syndicateToken;
+
     address public tocwexOwner;
     address public registryAddress;
     address public deployerV1Address;
+    address public azimuthAddress;
+    address public eclipticAddress;
 
     DeployConfig public deployConfig;
     DeployConfig.NetworkConfig public config;
@@ -33,6 +36,8 @@ contract DeploySyndicate is Script {
 
         console2.log("Deploying with address: ", config.deploymentAddress);
         console2.log("Network Config:");
+        console2.log("Azimuth contract address: ", config.azimuthContract);
+        console2.log("Ecliptic contract address: ", config.eclipticContract);
         console2.log("- Deployer Fee:", config.deployerFee);
         console2.log("- Existing Registry:", config.existingRegistryAddress);
         console2.log("- Existing Deployer:", config.existingDeployerAddress);
@@ -43,42 +48,16 @@ contract DeploySyndicate is Script {
         console2.log("- Max Supply:", config.maxSupply);
     }
 
-    //// TODO Function to generate the deployment data
-    //// This function will then need to pass this data as calldata through the
-    //// smart contract wallet that is being used for deployment purposes
-    // function getDeploymentData() internal returns (bytes memory) {
-    //     vm.startPrank(config.deploymentAddress);
-    //
-    //     bytes memory registryData = abi.encodePacked(type(SyndicateRegistry).creationCode);
-    //     bytes memory deployerData = abi.encodePacked(
-    //         type(SyndicateDeployerV1).creationCode,
-    //         abi.encode(address(0), config.deployerFee) // constructor args
-    //     );
-    //
-    //// FIXME Doesn't currently generate the token data, in the event that
-    //// we want to generate the initial token deployment here as well.
-    //     vm.stopPrank();
-    //
-    //     return abi.encodePacked(registryData, deployerData);
-    // }
-    //
     function run() external {
         if (config.signerType == DeployConfig.SignerType.ContractWallet) {
-            // TODO implement ERC6551 smart wallet interface to enable deployment from PDO TBA
             revert("Contract Wallet Logic not yet implemented");
         } else if (config.signerType == DeployConfig.SignerType.PrivateKey) {
             uint256 deploymentPrivateKey;
             if (block.chainid == 11155111) {
-                string memory rawKey = string.concat(
-                    "0x",
-                    vm.envString("SEPOLIA_PRIVATE_KEY_0")
-                );
+                string memory rawKey = string.concat("0x", vm.envString("SEPOLIA_PRIVATE_KEY_0"));
                 deploymentPrivateKey = vm.parseUint(rawKey);
             } else {
-                string memory rawKey = string.concat(
-                    "0x",
-                    vm.envString("ANVIL_PRIVATE_KEY_0")
-                );
+                string memory rawKey = string.concat("0x", vm.envString("ANVIL_PRIVATE_KEY_0"));
                 deploymentPrivateKey = vm.parseUint(rawKey);
             }
             vm.startBroadcast(deploymentPrivateKey);
@@ -88,19 +67,17 @@ contract DeploySyndicate is Script {
         }
 
         if (config.existingRegistryAddress == address(0)) {
-            registry = new SyndicateRegistry();
+            azimuthAddress = config.azimuthContract;
+            registry = new SyndicateRegistry(azimuthAddress);
             registryAddress = address(registry);
+            console2.log("Registry deployed with Azimuth param of: ", azimuthAddress);
         } else {
             registryAddress = config.existingRegistryAddress;
             registry = SyndicateRegistry(payable(registryAddress));
         }
 
         if (config.existingDeployerAddress == address(0)) {
-            deployerV1 = new SyndicateDeployerV1(
-                registryAddress,
-                config.azimuthContract,
-                config.deployerFee
-            );
+            deployerV1 = new SyndicateDeployerV1(registryAddress, config.deployerFee);
             registry.registerDeployer(
                 ISyndicateRegistry.SyndicateDeployerData({
                     deployerAddress: address(deployerV1),
@@ -109,15 +86,10 @@ contract DeploySyndicate is Script {
                 })
             );
         } else {
-            deployerV1 = SyndicateDeployerV1(
-                payable(config.existingDeployerAddress)
-            );
+            deployerV1 = SyndicateDeployerV1(payable(config.existingDeployerAddress));
             deployerV1Address = address(deployerV1);
 
-            ISyndicateRegistry.SyndicateDeployerData
-                memory deployerData = registry.getDeployerData(
-                    deployerV1Address
-                );
+            ISyndicateRegistry.SyndicateDeployerData memory deployerData = registry.getDeployerData(deployerV1Address);
 
             if (deployerData.deployerAddress != deployerV1Address) {
                 registry.registerDeployer(
@@ -131,30 +103,10 @@ contract DeploySyndicate is Script {
             address tbaImplementation = config.implementationAddress;
             deployerV1.addApprovedTbaImplementation(tbaImplementation);
         }
-        //
-        // syndicateToken = SyndicateTokenV1(
-        //     payable(
-        //         deployerV1.deploySyndicate(
-        //             config.implementationAddress,
-        //             config.salt,
-        //             config.initialSupply,
-        //             config.maxSupply,
-        //             config.azimuthPoint,
-        //             config.tokenName,
-        //             config.tokenSymbol
-        //         )
-        //     )
-        // );
 
         vm.stopBroadcast();
 
         console2.log("Registry Deployed to: ", address(registry));
         console2.log("DeployerV1 deployed to: ", address(deployerV1));
-        //     console2.log(
-        //         "Syndicate Token for: ",
-        //         msg.sender,
-        //         "deployed to: ",
-        //         address(syndicateToken)
-        //     );
     }
 }
