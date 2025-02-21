@@ -2,11 +2,6 @@
 
 pragma solidity ^0.8.19;
 
-// TODO
-// Deployment script
-// include setup of initial contracts
-// will need to get into deploying the ERC6551 and Azimuth contracts onto my testnets if/when we get more complicated about the minting permissions
-
 import {Script} from "@forge-std/Script.sol";
 import {console2} from "../lib/forge-std/src/console2.sol";
 import {SyndicateTokenV1} from "../src/SyndicateTokenV1.sol";
