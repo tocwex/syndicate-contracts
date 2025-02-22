@@ -49,10 +49,16 @@ contract DeploySyndicate is Script {
         } else if (config.signerType == DeployConfig.SignerType.PrivateKey) {
             uint256 deploymentPrivateKey;
             if (block.chainid == 11155111) {
-                string memory rawKey = string.concat("0x", vm.envString("SEPOLIA_PRIVATE_KEY_0"));
+                string memory rawKey = string.concat(
+                    "0x",
+                    vm.envString("SEPOLIA_PRIVATE_KEY_0")
+                );
                 deploymentPrivateKey = vm.parseUint(rawKey);
             } else {
-                string memory rawKey = string.concat("0x", vm.envString("ANVIL_PRIVATE_KEY_0"));
+                string memory rawKey = string.concat(
+                    "0x",
+                    vm.envString("ANVIL_PRIVATE_KEY_0")
+                );
                 deploymentPrivateKey = vm.parseUint(rawKey);
             }
             vm.startBroadcast(deploymentPrivateKey);
@@ -65,32 +71,43 @@ contract DeploySyndicate is Script {
             azimuthAddress = config.azimuthContract;
             registry = new SyndicateRegistry(azimuthAddress);
             registryAddress = address(registry);
-            console2.log("Registry deployed with Azimuth param of: ", azimuthAddress);
+            console2.log(
+                "Registry deployed with Azimuth param of: ",
+                azimuthAddress
+            );
         } else {
             registryAddress = config.existingRegistryAddress;
             registry = SyndicateRegistry(payable(registryAddress));
         }
 
         if (config.existingDeployerAddress == address(0)) {
-            deployerV1 = new SyndicateDeployerV1(registryAddress, config.deployerFee);
+            deployerV1 = new SyndicateDeployerV1(
+                registryAddress,
+                config.deployerFee
+            );
             registry.registerDeployer(
                 ISyndicateRegistry.SyndicateDeployerData({
                     deployerAddress: address(deployerV1),
-                    deployerVersion: 1,
+                    deployerVersion: 1000000,
                     isActive: true
                 })
             );
         } else {
-            deployerV1 = SyndicateDeployerV1(payable(config.existingDeployerAddress));
+            deployerV1 = SyndicateDeployerV1(
+                payable(config.existingDeployerAddress)
+            );
             deployerV1Address = address(deployerV1);
 
-            ISyndicateRegistry.SyndicateDeployerData memory deployerData = registry.getDeployerData(deployerV1Address);
+            ISyndicateRegistry.SyndicateDeployerData
+                memory deployerData = registry.getDeployerData(
+                    deployerV1Address
+                );
 
             if (deployerData.deployerAddress != deployerV1Address) {
                 registry.registerDeployer(
                     ISyndicateRegistry.SyndicateDeployerData({
                         deployerAddress: address(deployerV1),
-                        deployerVersion: 1,
+                        deployerVersion: 1000000,
                         isActive: true
                     })
                 );
