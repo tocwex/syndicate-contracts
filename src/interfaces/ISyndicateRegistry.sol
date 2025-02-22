@@ -357,7 +357,6 @@ interface ISyndicateRegistry is IERC721 {
         address checkAddress
     ) external view returns (bool syndicateExists);
 
-    // TODO Check how we are handling the ~zod / 0 / null return
     /// @notice Getter function to retrieve an azimuth point if it is associated with the provided address
     /// @dev should revert if there is no syndicate, as returning the default value, 0, should only occur if the address is associated with ~zod's Syndicate Token
     /// @param checkAddress The address to check in the registry for association with an Urbit ID

@@ -2,7 +2,6 @@
 
 pragma solidity ^0.8.19;
 
-// TODO handle the way ~zod lookups / getters function to account for the default value of tokenId being 0, aka `@ud`~zod
 import {ReentrancyGuard} from "../lib/openzepplin-contracts/contracts/security/ReentrancyGuard.sol";
 import {IERC721} from "../lib/openzepplin-contracts/contracts/token/ERC721/IERC721.sol";
 import {IERC165} from "../lib/openzepplin-contracts/contracts/interfaces/IERC165.sol";
