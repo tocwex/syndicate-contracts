@@ -2,11 +2,6 @@
 
 pragma solidity ^0.8.19;
 
-// TODO
-// Deployment script
-// include setup of initial contracts
-// will need to get into deploying the ERC6551 and Azimuth contracts onto my testnets if/when we get more complicated about the minting permissions
-
 import {Script} from "@forge-std/Script.sol";
 import {console2} from "../lib/forge-std/src/console2.sol";
 import {SyndicateTokenV1} from "../src/SyndicateTokenV1.sol";
@@ -19,9 +14,12 @@ contract DeploySyndicate is Script {
     SyndicateRegistry public registry;
     SyndicateDeployerV1 public deployerV1;
     SyndicateTokenV1 public syndicateToken;
+
     address public tocwexOwner;
     address public registryAddress;
     address public deployerV1Address;
+    address public azimuthAddress;
+    address public eclipticAddress;
 
     DeployConfig public deployConfig;
     DeployConfig.NetworkConfig public config;
@@ -33,6 +31,8 @@ contract DeploySyndicate is Script {
 
         console2.log("Deploying with address: ", config.deploymentAddress);
         console2.log("Network Config:");
+        console2.log("Azimuth contract address: ", config.azimuthContract);
+        console2.log("Ecliptic contract address: ", config.eclipticContract);
         console2.log("- Deployer Fee:", config.deployerFee);
         console2.log("- Existing Registry:", config.existingRegistryAddress);
         console2.log("- Existing Deployer:", config.existingDeployerAddress);
@@ -43,28 +43,8 @@ contract DeploySyndicate is Script {
         console2.log("- Max Supply:", config.maxSupply);
     }
 
-    //// TODO Function to generate the deployment data
-    //// This function will then need to pass this data as calldata through the
-    //// smart contract wallet that is being used for deployment purposes
-    // function getDeploymentData() internal returns (bytes memory) {
-    //     vm.startPrank(config.deploymentAddress);
-    //
-    //     bytes memory registryData = abi.encodePacked(type(SyndicateRegistry).creationCode);
-    //     bytes memory deployerData = abi.encodePacked(
-    //         type(SyndicateDeployerV1).creationCode,
-    //         abi.encode(address(0), config.deployerFee) // constructor args
-    //     );
-    //
-    //// FIXME Doesn't currently generate the token data, in the event that
-    //// we want to generate the initial token deployment here as well.
-    //     vm.stopPrank();
-    //
-    //     return abi.encodePacked(registryData, deployerData);
-    // }
-    //
     function run() external {
         if (config.signerType == DeployConfig.SignerType.ContractWallet) {
-            // TODO implement ERC6551 smart wallet interface to enable deployment from PDO TBA
             revert("Contract Wallet Logic not yet implemented");
         } else if (config.signerType == DeployConfig.SignerType.PrivateKey) {
             uint256 deploymentPrivateKey;
@@ -88,8 +68,13 @@ contract DeploySyndicate is Script {
         }
 
         if (config.existingRegistryAddress == address(0)) {
-            registry = new SyndicateRegistry();
+            azimuthAddress = config.azimuthContract;
+            registry = new SyndicateRegistry(azimuthAddress);
             registryAddress = address(registry);
+            console2.log(
+                "Registry deployed with Azimuth param of: ",
+                azimuthAddress
+            );
         } else {
             registryAddress = config.existingRegistryAddress;
             registry = SyndicateRegistry(payable(registryAddress));
@@ -98,13 +83,12 @@ contract DeploySyndicate is Script {
         if (config.existingDeployerAddress == address(0)) {
             deployerV1 = new SyndicateDeployerV1(
                 registryAddress,
-                config.azimuthContract,
                 config.deployerFee
             );
             registry.registerDeployer(
                 ISyndicateRegistry.SyndicateDeployerData({
                     deployerAddress: address(deployerV1),
-                    deployerVersion: 1,
+                    deployerVersion: 1000000,
                     isActive: true
                 })
             );
@@ -123,7 +107,7 @@ contract DeploySyndicate is Script {
                 registry.registerDeployer(
                     ISyndicateRegistry.SyndicateDeployerData({
                         deployerAddress: address(deployerV1),
-                        deployerVersion: 1,
+                        deployerVersion: 1000000,
                         isActive: true
                     })
                 );
@@ -131,30 +115,10 @@ contract DeploySyndicate is Script {
             address tbaImplementation = config.implementationAddress;
             deployerV1.addApprovedTbaImplementation(tbaImplementation);
         }
-        //
-        // syndicateToken = SyndicateTokenV1(
-        //     payable(
-        //         deployerV1.deploySyndicate(
-        //             config.implementationAddress,
-        //             config.salt,
-        //             config.initialSupply,
-        //             config.maxSupply,
-        //             config.azimuthPoint,
-        //             config.tokenName,
-        //             config.tokenSymbol
-        //         )
-        //     )
-        // );
 
         vm.stopBroadcast();
 
         console2.log("Registry Deployed to: ", address(registry));
         console2.log("DeployerV1 deployed to: ", address(deployerV1));
-        //     console2.log(
-        //         "Syndicate Token for: ",
-        //         msg.sender,
-        //         "deployed to: ",
-        //         address(syndicateToken)
-        //     );
     }
 }

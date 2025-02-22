@@ -37,11 +37,9 @@ contract SyndicateDeployerV1 is ISyndicateDeployerV1, ReentrancyGuard {
     ////////////////////
 
     /// @notice contract address for Syndicate Registry singleton
+    /// @dev Serves as the `tokenContract` address for ERC6551 Tokenbound account smart contracts in order to provide a stable endpoint for Azimuth Point ownership in the Urbit ID (Azimuth/Ecliptic) contract ecosystem
+    /// @dev See `SyndicateRegistry` contract comments for more details
     ISyndicateRegistry private immutable i_registry;
-
-    /// @notice contract address for deriving ownership of Azimuth Points / Urbit IDs
-    // TODO Look into the questions around impacts of ecliptic.eth self-destructing?
-    IERC721 private immutable i_azimuthContract;
 
     /////////////////////////////////
     //// Regular State Variables ////
@@ -130,7 +128,7 @@ contract SyndicateDeployerV1 is ISyndicateDeployerV1, ReentrancyGuard {
     modifier onlyValidTba(address proposedTbaAddress, uint256 azimuthPoint, address implementation, bytes32 salt) {
         require(azimuthPoint < 65535, "Only Stars and Galaxies can launch Syndicates from this deployer");
         address derivedTba =
-            TBA_REGISTRY.account(implementation, salt, block.chainid, address(i_azimuthContract), azimuthPoint);
+            TBA_REGISTRY.account(implementation, salt, block.chainid, address(i_registry), azimuthPoint);
         require(proposedTbaAddress == derivedTba, "Proposed token owner not a valid TBA associated with Urbit ID");
         _;
     }
@@ -148,18 +146,13 @@ contract SyndicateDeployerV1 is ISyndicateDeployerV1, ReentrancyGuard {
     /// @notice Constructor for Syndicate Deployer V1 Factory Contract
     /// @dev
     /// @param registryAddress The Syndicate Ecosystem Registry singleton contract
-    /// @param azimuthContract The address to be used in TBA account validation
-    // TODO Implement the static address wrapper to protect against ecliptic upgrade self-destructing
     /// @param fee Initial protocol fee rate
-    constructor(address registryAddress, address azimuthContract, uint256 fee) {
+    constructor(address registryAddress, uint256 fee) {
         require(registryAddress != address(0), "Registry address cannot be zero");
-        require(azimuthContract != address(0), "Azimuth contract address cannot be zero");
         require(registryAddress.code.length > 0, "Registry must be a contract");
-        require(azimuthContract.code.length > 0, "Azimuth must be a contract");
         require(fee <= 10000, "Protocol Fee may not be greater than 100%");
 
         i_registry = ISyndicateRegistry(registryAddress);
-        i_azimuthContract = IERC721(azimuthContract);
         _feeRecipient = msg.sender;
         _feeRate = fee;
         emit DeployerV1Deployed({registryAddress: registryAddress, fee: fee, feeRecipient: msg.sender});
