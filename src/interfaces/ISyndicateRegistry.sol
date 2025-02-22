@@ -60,7 +60,11 @@ interface ISyndicateRegistry is IERC721 {
     /// @param syndicateDeployer The address of the newly registered Deployer
     /// @param deployerVersion The version number of the deployer, see {SyndicateDeployerData} struct for version number encoding details
     /// @param isActive The registration eligibility of the deployer, should be true on initial registration
-    event DeployerRegistered(address indexed syndicateDeployer, uint64 indexed deployerVersion, bool isActive);
+    event DeployerRegistered(
+        address indexed syndicateDeployer,
+        uint64 indexed deployerVersion,
+        bool isActive
+    );
 
     /// @notice Emitted when a deployer is deactivated on the registry
     /// @dev Deativation of a deployer sets isActive to false, but retains data in contract storage for reference purposes
@@ -85,7 +89,10 @@ interface ISyndicateRegistry is IERC721 {
     /// @param owner The ownership address of the newly registered token
     /// @param azimuthPoint The tokenId of the urbit ID associated with the Syndicate Token
     event SyndicateRegistered(
-        address indexed deployerAddress, address indexed syndicateToken, address owner, uint256 indexed azimuthPoint
+        address indexed deployerAddress,
+        address indexed syndicateToken,
+        address owner,
+        uint256 indexed azimuthPoint
     );
 
     /// @notice Emitted when a syndicate owner removes the token from the ecosystem registry
@@ -95,7 +102,10 @@ interface ISyndicateRegistry is IERC721 {
     /// @param owner The ownership address of the newly registered token
     /// @param azimuthPoint The tokenId of the urbit ID associated with the Syndicate Token
     event SyndicateDissolved(
-        address indexed deployerAddress, address indexed syndicateToken, address owner, uint256 indexed azimuthPoint
+        address indexed deployerAddress,
+        address indexed syndicateToken,
+        address owner,
+        uint256 indexed azimuthPoint
     );
 
     /// @notice Emitted when a syndicate token owner is successfully updated
@@ -105,7 +115,10 @@ interface ISyndicateRegistry is IERC721 {
     /// @param owner The address of the new owner of the token contract
     /// @param azimuthPoint The tokenId of the urbit ID associated with the Syndicate Token
     event SyndicateOwnerUpdated(
-        address indexed deployerAddress, address indexed syndicateToken, address owner, uint256 indexed azimuthPoint
+        address indexed deployerAddress,
+        address indexed syndicateToken,
+        address owner,
+        uint256 indexed azimuthPoint
     );
 
     //////////////////////////
@@ -115,7 +128,10 @@ interface ISyndicateRegistry is IERC721 {
     /// @notice Emitted when an ecosystem ownership transfer is proposed
     /// @param pendingOwner The proposed new owner for the registry contract
     /// @param registryOwner The current owner of the registry contract
-    event OwnerProposed(address indexed pendingOwner, address indexed registryOwner);
+    event OwnerProposed(
+        address indexed pendingOwner,
+        address indexed registryOwner
+    );
 
     /// @notice Emitted when ownership transfer is accepted
     /// @param previousOwner The old owner of the registry contract
@@ -125,13 +141,19 @@ interface ISyndicateRegistry is IERC721 {
     /// @notice Emitted when the ownership transfer is rejected by pendingOwner
     /// @param proposedOwner The address that rejected ownership control of the registry
     /// @param retainedOwner The address that retains ownership control of the registry
-    event OwnershipRejected(address indexed proposedOwner, address indexed retainedOwner);
+    event OwnershipRejected(
+        address indexed proposedOwner,
+        address indexed retainedOwner
+    );
 
     /// @notice Emitted when the owner nullifies the proposed ownership transfer
     /// @dev
     /// @param registryOwner The address which owns the registry contract
     /// @param proposedOwner The address removed from proposed owner role
-    event ProposalNullified(address indexed registryOwner, address indexed proposedOwner);
+    event ProposalNullified(
+        address indexed registryOwner,
+        address indexed proposedOwner
+    );
 
     /// @notice Emitted when the owner permanently renounced ownership to the null address
     /// @dev
@@ -150,19 +172,25 @@ interface ISyndicateRegistry is IERC721 {
     /// @dev This function should be restricted to onlyOwner
     /// @param syndicateDeployerData See {SyndicateDeployerData} for struct documentation
     /// @return success The confirmation that the deployer has been added to the registry
-    function registerDeployer(SyndicateDeployerData calldata syndicateDeployerData) external returns (bool success);
+    function registerDeployer(
+        SyndicateDeployerData calldata syndicateDeployerData
+    ) external returns (bool success);
 
     /// @notice Called to deactivate deployer in the Syndicate Registry
     /// @dev This function should be restricted to onlyOwner
     /// @param syndicateDeployerData See {SyndicateDeployerData} for struct documentation
     /// @return success The confirmation that the deployer has been deactivated in the registry
-    function deactivateDeployer(SyndicateDeployerData calldata syndicateDeployerData) external returns (bool success);
+    function deactivateDeployer(
+        SyndicateDeployerData calldata syndicateDeployerData
+    ) external returns (bool success);
 
     /// @notice Called to reactivate deployer in the Syndicate Registry
     /// @dev This function should be restricted to onlyOwner
     /// @param syndicateDeployerData See {SyndicateDeployerData} for struct documentation
     /// @return success The confirmation that the deployer has been reactivated in the registry
-    function reactivateDeployer(SyndicateDeployerData calldata syndicateDeployerData) external returns (bool success);
+    function reactivateDeployer(
+        SyndicateDeployerData calldata syndicateDeployerData
+    ) external returns (bool success);
 
     //////////////////////////////////////
     //// Syndicate registry functions ////
@@ -172,22 +200,27 @@ interface ISyndicateRegistry is IERC721 {
     /// @dev This function should only be callable by an active Syndicate Deployer, and the syndicate deployer MUST implement the check to ensure only a valid TBA may register a syndicate and create a mapping(uint256 => Syndicate) in the process.
     /// @param syndicate See {Syndicate} for struct documentation
     /// @return success Boolean for transaction completion
-    function registerSyndicate(Syndicate calldata syndicate) external returns (bool success);
+    function registerSyndicate(
+        Syndicate calldata syndicate
+    ) external returns (bool success);
 
     /// @notice Called by a syndicate deployer to dissove a Syndicate Token's association with the registry
     /// @dev This function should only be callable by a Syndicate Deployer
     /// @param syndicate See {Syndicate} for struct documentation
     /// @return success Boolean for transaction completion
-    function dissolveSyndicate(Syndicate calldata syndicate) external returns (bool success);
+    function dissolveSyndicate(
+        Syndicate calldata syndicate
+    ) external returns (bool success);
 
     /// @notice Called by an active syndicate deployer to update the owner of a Syndicate token contract
     /// @dev should only be callable by an active Syndicate Deployer, and the syndicate deployer MUST implement the check to ensure only a valid TBA may be made the owner of a given syndicate, updating the mapping(uint256 => Syndicate) in the process.
     /// @param syndicateToken The address of the syndicate token contract
     /// @param newOwner The address of the proposed new owner of the syndicateToken contact
     /// @return success Boolean for transaction completion
-    function updateSyndicateOwnerRegistration(address syndicateToken, address newOwner)
-        external
-        returns (bool success);
+    function updateSyndicateOwnerRegistration(
+        address syndicateToken,
+        address newOwner
+    ) external returns (bool success);
 
     //////////////////////////////////////
     //// Ownership transfer functions ////
@@ -197,7 +230,9 @@ interface ISyndicateRegistry is IERC721 {
     /// @dev should only be callable by current contract owner
     /// @param proposedOwner The address of the proposed new owner
     /// @return success Boolean for transaction completion
-    function proposeNewOwner(address proposedOwner) external returns (bool success);
+    function proposeNewOwner(
+        address proposedOwner
+    ) external returns (bool success);
 
     /// @notice Called by pendingOwner to accept ownership of Syndicate Registry contract
     /// @dev should only be callable by pendingOwner
@@ -230,22 +265,31 @@ interface ISyndicateRegistry is IERC721 {
     /// @notice Getter function to check if an address is a registered deployer
     /// @dev Existence of deployer does not guarantee that the deployer is active; call getDeployerData for that state.
     /// @return isRegistered Boolean indicating that the address is including in the registry as a deployer
-    function isRegisteredDeployer(address checkAddress) external view returns (bool isRegistered);
+    function isRegisteredDeployer(
+        address checkAddress
+    ) external view returns (bool isRegistered);
 
     /// @notice Getter function to check if deployer is currently active
     /// @dev Deployer must be active in order to allow launching of new syndicate tokens
     /// @param checkAddress The address of the deployer for which you want to check active state
     /// @return isActive The state of the deployer
-    function isActiveDeployer(address checkAddress) external view returns (bool isActive);
+    function isActiveDeployer(
+        address checkAddress
+    ) external view returns (bool isActive);
 
     /// @notice Getter function to retrieve an array of addresses for all registered deployers
     /// @return syndicateDeployers Array of addresses which are valid Deployer contracts, which may or may not be active.
-    function getDeployers() external view returns (address[] memory syndicateDeployers);
+    function getDeployers()
+        external
+        view
+        returns (address[] memory syndicateDeployers);
 
     /// @notice Getter function to retrieve the contents of a SyndicateDeployerData struct for the given address
     /// @param deployerAddress The address of a deployer contract in the syndicateDeployers array
     /// @return syndicateDeployerData A struct containing {SyndicateDeployerData} data
-    function getDeployerData(address deployerAddress)
+    function getDeployerData(
+        address deployerAddress
+    )
         external
         view
         returns (SyndicateDeployerData memory syndicateDeployerData);
@@ -254,121 +298,113 @@ interface ISyndicateRegistry is IERC721 {
     /// @dev this checks if there is a Syndicate Token currently registered; it does not return true if a syndicate has been launched but dissolved.
     /// @param azimuthPoint The tokenId of an Urbit ID
     /// @return syndicateExists A boolean indicating if a syndicate token exists
-    function getSyndicateTokenExistsUsingAzimuthPoint(uint256 azimuthPoint)
-        external
-        view
-        returns (bool syndicateExists);
+    function getSyndicateTokenExistsUsingAzimuthPoint(
+        uint256 azimuthPoint
+    ) external view returns (bool syndicateExists);
 
     /// @notice Getter function to retrieve the token address of a given Azimuth Point
     /// @param azimuthPoint The tokenId of an Urbit ID
     /// @return syndicateAddress The address of a Syndicate Token; if it returns the null address, there is no registered Syndicate for the provided Urbit ID
-    function getSyndicateTokenAddressUsingAzimuthPoint(uint256 azimuthPoint)
-        external
-        view
-        returns (address syndicateAddress);
+    function getSyndicateTokenAddressUsingAzimuthPoint(
+        uint256 azimuthPoint
+    ) external view returns (address syndicateAddress);
 
     /// @notice Getter function to retrieve the ownership address of an Azimuth Point
     /// @dev This will return an address which is associated with the Urbit ID as an ERC6551 account, but makes no validation checks about the security implications or smart contract wallet functionality of the implementation being used by the Azimuth Point's owner
+    /// @dev Will revert if syndicate contract doesn't exist, so if the null address is returned, it mean's the Syndicate token ownership has been renounced
     /// @param azimuthPoint The tokenId of an Urbit ID
     /// @return syndicateOwner The current address with ownership rights over the Syndicate Token associated with the provided Urbit ID
-    function getSyndicateTokenOwnerAddressUsingAzimuthPoint(uint256 azimuthPoint)
-        external
-        view
-        returns (address syndicateOwner);
+    function getSyndicateTokenOwnerAddressUsingAzimuthPoint(
+        uint256 azimuthPoint
+    ) external view returns (address syndicateOwner);
 
     /// @notice Getter function to retrieve the deployer used to launch a syndicate token
     /// @dev Will return the null address if no syndicate token has been launched by the provided Azimuth Point
     /// @param azimuthPoint The tokenId of an Urbit ID
     /// @return syndicateDeployerAddress The address of the deployer contract used to launch the associated token
-    function getSyndicateTokenDeployerAddressUsingAzimuthPoint(uint256 azimuthPoint)
-        external
-        view
-        returns (address syndicateDeployerAddress);
+    function getSyndicateTokenDeployerAddressUsingAzimuthPoint(
+        uint256 azimuthPoint
+    ) external view returns (address syndicateDeployerAddress);
 
     /// @notice Getter function to retrieve the version number of the deployer used for a given Azimuth Point's Syndicate token
     /// @dev See the {SyndicateDeployerData} struct for details on version number encoding
     /// @dev will return zero for an unlaunched Syndicate Token
     /// @param azimuthPoint The tokenId of an Urbit ID
     /// @return syndicateDeployerVersion The encoded version number
-    function getSyndicateTokenDeployerVersionUsingAzimuthPoint(uint256 azimuthPoint)
-        external
-        view
-        returns (uint64 syndicateDeployerVersion);
+    function getSyndicateTokenDeployerVersionUsingAzimuthPoint(
+        uint256 azimuthPoint
+    ) external view returns (uint64 syndicateDeployerVersion);
 
     /// @notice Getter function to check if the deployer used to launch is still active
     /// @param azimuthPoint The tokenId of an Urbit ID
     /// @return syndicateDeployerIsActive The boolean indicating if the deployer is active
-    function getSyndicateTokenDeployerIsActiveUsingAzimuthPoint(uint256 azimuthPoint)
-        external
-        view
-        returns (bool syndicateDeployerIsActive);
+    function getSyndicateTokenDeployerIsActiveUsingAzimuthPoint(
+        uint256 azimuthPoint
+    ) external view returns (bool syndicateDeployerIsActive);
 
     /// @notice Getter function to check blockheight of token launch
-    /// @dev If it returns 0, a token has either not been launched, or has been disolved.
+    /// @dev If it returns 0, a token has either not been launched, or has been dissolved.
     /// @param azimuthPoint The tokenId of an Urbit ID
     /// @return syndicateLaunchTime The block height at which the syndicate for the urbit ID was launched
-    function getSyndicateTokenLaunchTimeUsingAzimuthPoint(uint256 azimuthPoint)
-        external
-        view
-        returns (uint256 syndicateLaunchTime);
+    function getSyndicateTokenLaunchTimeUsingAzimuthPoint(
+        uint256 azimuthPoint
+    ) external view returns (uint256 syndicateLaunchTime);
 
     /// @notice Getter function to check if a provided address is a registered Syndicate Token
     /// @param checkAddress An address to check against the registry for presence of an associated Urbit ID
     /// @return syndicateExists The boolean indicating if a Syndicate Token exists at a given address
-    function getSyndicateTokenExistsUsingAddress(address checkAddress) external view returns (bool syndicateExists);
+    function getSyndicateTokenExistsUsingAddress(
+        address checkAddress
+    ) external view returns (bool syndicateExists);
 
     // TODO Check how we are handling the ~zod / 0 / null return
     /// @notice Getter function to retrieve an azimuth point if it is associated with the provided address
     /// @dev should revert if there is no syndicate, as returning the default value, 0, should only occur if the address is associated with ~zod's Syndicate Token
     /// @param checkAddress The address to check in the registry for association with an Urbit ID
     /// @return azimuthPoint The tokenId of the Urbit ID that owns the Syndicate Token at the provided address
-    function getSyndicateAzimuthPointUsingAddress(address checkAddress) external view returns (uint256 azimuthPoint);
+    function getSyndicateAzimuthPointUsingAddress(
+        address checkAddress
+    ) external view returns (uint256 azimuthPoint);
 
     /// @notice Get the full {Syndicate} struct for a given address
     /// @param checkAddress A suspected Syndicate Token address
-    /// @return someSyndicate A {Syndicate} struct for the provided address, if it exists
-    function getSyndicateUsingTokenAddress(address checkAddress)
-        external
-        view
-        returns (Syndicate memory someSyndicate);
+    /// @return syndicate A {Syndicate} struct for the provided address, if it exists
+    function getSyndicateUsingTokenAddress(
+        address checkAddress
+    ) external view returns (Syndicate memory syndicate);
 
     /// @notice Get the ownership address for a provided Syndicate Token
     /// @param checkAddress A suspected Syndicate Token address
     /// @return syndicateOwner The address which controls the ownership rights for the provided Syndicate Token
-    function getSyndicateTokenOwnerAddressUsingAddress(address checkAddress)
-        external
-        view
-        returns (address syndicateOwner);
+    function getSyndicateTokenOwnerAddressUsingAddress(
+        address checkAddress
+    ) external view returns (address syndicateOwner);
 
     /// @notice Get the deployer address for a provided Syndicate Token
     /// @param checkAddress A suspected Syndicate Token address
     /// @return syndicateDeployerAddress The address of the deployer used to launch the Syndicate Token
-    function getSyndicateTokenDeployerAddressUsingAddress(address checkAddress)
-        external
-        view
-        returns (address syndicateDeployerAddress);
+    function getSyndicateTokenDeployerAddressUsingAddress(
+        address checkAddress
+    ) external view returns (address syndicateDeployerAddress);
 
     /// @notice Get the deployer version for a provided Syndicate Token
     /// @param checkAddress A suspected Syndicate Token address
     /// @return syndicateDeployerVersion The deployer version used to launch the Syndicate Token
-    function getSyndicateTokenDeployerVersionUsingAddress(address checkAddress)
-        external
-        view
-        returns (uint64 syndicateDeployerVersion);
+    function getSyndicateTokenDeployerVersionUsingAddress(
+        address checkAddress
+    ) external view returns (uint64 syndicateDeployerVersion);
 
     /// @notice Get the deployer active state for a provided Syndicate Token
     /// @param checkAddress A suspected Syndicate Token address
     /// @return syndicateDeployerIsActive The boolean indicating deployer active state
-    function getSyndicateTokenDeployerIsActiveUsingAddress(address checkAddress)
-        external
-        view
-        returns (bool syndicateDeployerIsActive);
+    function getSyndicateTokenDeployerIsActiveUsingAddress(
+        address checkAddress
+    ) external view returns (bool syndicateDeployerIsActive);
 
     /// Get the syndiate launch time for a provided Syndicate Token
     /// @param checkAddress A suspected Syndicate Token address
     /// @return syndicateLaunchTime The blockheight at which the given Syndicate Token was launched
-    function getSyndicateTokenLaunchTimeUsingAddress(address checkAddress)
-        external
-        view
-        returns (uint256 syndicateLaunchTime);
+    function getSyndicateTokenLaunchTimeUsingAddress(
+        address checkAddress
+    ) external view returns (uint256 syndicateLaunchTime);
 }
