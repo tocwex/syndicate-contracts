@@ -985,7 +985,7 @@ contract SyndicateEcosystemTest is Test {
         );
     }
 
-    function test_WIPDissolveAndRelaunchSyndicate() public {
+    function test_DissolveAndRelaunchSyndicate() public {
         _registerDeployer();
 
         address dissolvableSyndicate;
