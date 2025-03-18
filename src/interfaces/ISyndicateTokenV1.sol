@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPLv3
-pragma solidity ^0.8.19;
+
+pragma solidity 0.8.25;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
@@ -17,13 +18,19 @@ interface ISyndicateTokenV1 {
     /// @dev Any address added to the custom whitelist must also be in the SyndicateDeployerV1 whitelist in order to function. The Custom whitelist is intended to allow a Syndicate Token owner to limit permissioned contracts to a subset of the officially permissioned contracts.
     /// @param tokenOwner The tokenbound account address that called the function to remove a contract from the whitelist
     /// @param contractAddress The address of the contract added to the whitelist
-    event ContractAddedToWhitelist(address indexed tokenOwner, address indexed contractAddress);
+    event ContractAddedToWhitelist(
+        address indexed tokenOwner,
+        address indexed contractAddress
+    );
 
     ///@notice Emitted when a permissioned contract is removed from the custom whitelist
     /// @dev Any address added to the custom whitelist must also be in the SyndicateDeployerV1 whitelist in order to function. The Custom whitelist is intended to allow a Syndicate Token owner to limit permissioned contracts to a subset of the officially permissioned contracts.
     /// @param tokenOwner The tokenbound account address that called the function to add a contract to the whitelist
     /// @param contractAddress The address of the contract added to  the whitelist
-    event ContractRemovedFromWhitelist(address indexed tokenOwner, address indexed contractAddress);
+    event ContractRemovedFromWhitelist(
+        address indexed tokenOwner,
+        address indexed contractAddress
+    );
 
     /// @notice Emitted when the syndicate owner renounces token ownership rights
     /// @dev
@@ -74,7 +81,10 @@ interface ISyndicateTokenV1 {
     /// @dev If defaultWhitelist is true, any contract in the SyndicateDeployerV1 whitelist is able to interact with the permissioned minting functions of the SyndicateTokenV1; if false, contracts must also be on the SyndicateTokenV1 whitelist as well.
     /// @param tokenOwner The address which changed the state of the access controls for the default whitelist
     /// @param defaultsWhitelisted the boolean indicating the permission state of the default whitelist
-    event ToggleDefaultWhitelist(address indexed tokenOwner, bool defaultsWhitelisted);
+    event ToggleDefaultWhitelist(
+        address indexed tokenOwner,
+        bool defaultsWhitelisted
+    );
 
     /// @notice Emitted when a minting fee is incurred
     /// @param feeRecipient The address to recieve the fee
@@ -102,7 +112,10 @@ interface ISyndicateTokenV1 {
     /// @dev batchMint does not do checks for array length so it is possible to run out of gas
     /// @param account An array of addresses to recieve newly minted tokens
     /// @param amount An array of amounts to mint, with 18 decimals
-    function batchMint(address[] calldata account, uint256[] calldata amount) external;
+    function batchMint(
+        address[] calldata account,
+        uint256[] calldata amount
+    ) external;
 
     /// @notice Permissioned batch mint
     /// @dev The permissionedBatchMint function should be access controlled as it allows modification of the token supply and transfer of tokens to arbitrary accounts
@@ -110,7 +123,10 @@ interface ISyndicateTokenV1 {
     /// @dev permissionedBatchMint does not do checks for array length so it is possible to run out of gas
     /// @param account An array of addresses to recieve newly minted tokens
     /// @param amount An array of amounts to mint, with 18 decimals
-    function permissionedBatchMint(address[] calldata account, uint256[] calldata amount) external;
+    function permissionedBatchMint(
+        address[] calldata account,
+        uint256[] calldata amount
+    ) external;
 
     /// @notice Ownership address update functionality
     /// @dev This is validated against the isValidTBA modifier of the SyndicateDepoyerV1 contract, but there is no controls over what tbaImplementation address is provided or the contract logic deployed at that address.
@@ -119,9 +135,11 @@ interface ISyndicateTokenV1 {
     /// @param tbaImplementation The address to use in validation that the newOwner address is a tokenbound account address of the Urbit ID associated with the Syndicate Token
     /// @param salt Any user provided bytes32 value to use in address validation; using the default value is recommended unless explicitly desirable to use a custom salt
     /// @return success Whether the function succeeded; recieving a false would be unexpected as the intended behavior is for a transaction to revert instead
-    function updateOwnershipTba(address newOwner, address tbaImplementation, bytes32 salt)
-        external
-        returns (bool success);
+    function updateOwnershipTba(
+        address newOwner,
+        address tbaImplementation,
+        bytes32 salt
+    ) external returns (bool success);
 
     /// @notice Owner address renounces minting rights
     /// @dev This function irrevokably renounces the minting rights of the current and any future owners of the Syndicate Token, but it does not prevent any further mints entirely, as it does not block minting by permissioned contracts using the permissioned mint functions
@@ -144,14 +162,18 @@ interface ISyndicateTokenV1 {
     /// @dev To save gas cost and contract call complexity input param is not validated against the SyndicateDeployerV1's whitelist but addresses added here are to be a subset of that whitelist in order to function
     /// @param contractAddress The address of a contract in the SyndicateDeployerV1 whitelist which should have access to the minting functions of the SyndicateTokenV1
     /// @return success Whether the function succeeded; recieving a false would be unexpected as the intended behavior is for a transaction to revert instead
-    function addWhitelistedContract(address contractAddress) external returns (bool success);
+    function addWhitelistedContract(
+        address contractAddress
+    ) external returns (bool success);
 
     /// @notice Adds a contract to the Syndicate Token permissioned mint whitelist
     /// @dev Allows a Syndicate Token owner to have more precise controls over the permissioned contracts which have access to the permissionedMint and permissionedBatchMint functions of the Syndicate Token contract
     /// @dev To save gas cost and contract call complexity input param is not validated against the Syndicate Token's existing whitelist so checking existing whitelisted contracts should be done by looking at past events emitted by the token contract
     /// @param contractAddress The address of a contract to be removed from the Syndicate Token's whitelist
     /// @return success Whether the function succeeded; recieving a false would be unexpected as the intended behavior is for a transaction to revert instead
-    function removeWhitelistedContract(address contractAddress) external returns (bool success);
+    function removeWhitelistedContract(
+        address contractAddress
+    ) external returns (bool success);
 
     /// @notice Toggles the permissions of the default SyndicateDeploverV1 whitelist
     /// @dev If the default whitelist state is true, any address in the permissioned contract mapping will be able to call the Syndicate Token permissioned mint functions; by setting it to false, only a subset of contracts--those added by the Syndicate Token owner--will be able to call those functions. This is set to false by default to ensure Syndicate Token owners need to turn it on in order to let *any* permissioned contracts mint on behalf of their Syndicate.
@@ -178,7 +200,10 @@ interface ISyndicateTokenV1 {
 
     /// @notice Gets the address of the related SyndicateDeployerV1 contract
     /// @return deployerAddress The address of a SyndicateDeployerV1 contract which should be callable with the ISyndicateDeployerV1 interface
-    function getDeployerAddress() external view returns (address deployerAddress);
+    function getDeployerAddress()
+        external
+        view
+        returns (address deployerAddress);
 
     /// @notice Gets the max supply of the Syndicate Token
     /// @return maxSupply the amount of max supply with 18 decimals
@@ -229,7 +254,9 @@ interface ISyndicateTokenV1 {
     /// @dev These contract addresses are stored in a mapping, so please track event emissions to maintain an index of whitelisted contracts for a given Syndicate Token contract
     /// @param contractAddress The address of a contract to be checked against the Syndicate Token's custom whitelist
     /// @return isWhitelisted The boolean indicating if the contract is whitelisted
-    function isWhitelistedContract(address contractAddress) external view returns (bool isWhitelisted);
+    function isWhitelistedContract(
+        address contractAddress
+    ) external view returns (bool isWhitelisted);
 
     /// @notice checks the fee recipient of minting fees
     /// @dev Calls the SyndicateDeployerV1 contract to check fee recipeint address

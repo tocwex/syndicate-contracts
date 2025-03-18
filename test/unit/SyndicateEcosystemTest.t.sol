@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPLv3
 
-pragma solidity ^0.8.19;
+pragma solidity 0.8.25;
 
 import {Test} from "@forge-std/Test.sol";
 import {console2} from "../../lib/forge-std/src/console2.sol";
@@ -431,10 +431,10 @@ contract SyndicateEcosystemTest is Test {
         console2.log("The input azimuthPoint for samzod is: ", samzodPoint);
         console2.log("~samzod's Owner is: ", samzodOwner);
 
-        uint256 fitdegPoint = 57973;
-        address fitdegOwner = registry.ownerOf(fitdegPoint);
-        console2.log("The input azimuthPoint for fitdeg is: ", fitdegPoint);
-        console2.log("~fitdeg's Owner is: ", fitdegOwner);
+        uint256 binlevPoint = 702;
+        address binlevOwner = registry.ownerOf(binlevPoint);
+        console2.log("The input azimuthPoint for binlev is: ", binlevPoint);
+        console2.log("~binlev's Owner is: ", binlevOwner);
     }
 
     //// Deployer Tests

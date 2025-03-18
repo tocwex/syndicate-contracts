@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPLv3
 
-pragma solidity ^0.8.19;
+pragma solidity 0.8.25;
 
 /// @title Interface for Syndicate Deployer
 /// @notice Interface definition of V1 contract for deploying syndicate tokens associated with onchain Urbit identities
@@ -16,14 +16,22 @@ interface ISyndicateDeployerV1 {
     /// @param registryAddress The immutable registry address to which the deployer will be added
     /// @param fee The protocol fee rate applied to token contracts launched from this deployer
     /// @param feeRecipient The address to recieve protocol fees from deployed token contracts
-    event DeployerV1Deployed(address indexed registryAddress, uint256 fee, address indexed feeRecipient);
+    event DeployerV1Deployed(
+        address indexed registryAddress,
+        uint256 fee,
+        address indexed feeRecipient
+    );
 
     /// @notice Emitted when a new token is deployed
     /// @dev
     /// @param token The syndicate token contract address
     /// @param owner The address associated with Urbit ID that launched token
     /// @param azimuthPoint The Urbit ID associated with the Syndicate Token
-    event TokenDeployed(address indexed token, address indexed owner, uint256 indexed azimuthPoint);
+    event TokenDeployed(
+        address indexed token,
+        address indexed owner,
+        uint256 indexed azimuthPoint
+    );
 
     /// @notice emitted when a syndicate token contract's owner changes
     /// @dev
@@ -39,7 +47,11 @@ interface ISyndicateDeployerV1 {
 
     /// @notice Emitted when the owner proposed a change to the protocol fee rate
     /// @dev Multiple may be emitted in a row, the most recent overwrite older values even if the fee is not updated
-    event FeeRateChangeProposed(uint256 newFee, uint256 updateBlockheight, address indexed changeProposer);
+    event FeeRateChangeProposed(
+        uint256 newFee,
+        uint256 updateBlockheight,
+        address indexed changeProposer
+    );
 
     /// @notice emitted when the protocol fee recipient is updated
     /// @dev
@@ -73,19 +85,28 @@ interface ISyndicateDeployerV1 {
     /// @dev This should remain a very limited list as implementations must be vetted to ensure their signature validation and signing controls are actually limited to the owner of the Urbit ID that is associated with them according to the ERC6551 Registry `account()` function.
     /// @param tbaImplementationAddress The address of a tokenbound account implementation
     /// @param deployerOwner The address of the deployer owner that called the function to add the implementation
-    event AddedTbaImplementation(address indexed tbaImplementationAddress, address indexed deployerOwner);
+    event AddedTbaImplementation(
+        address indexed tbaImplementationAddress,
+        address indexed deployerOwner
+    );
 
     /// @notice Emitted when a TBA implementation address is removed from the approved list
     /// @dev This should remain a very limited list as implementations must be vetted to ensure their signature validation and signing controls are actually limited to the owner of the Urbit ID that is associated with them according to the ERC6551 Registry `account()` function.
     /// @param tbaImplementationAddress The address of a tokenbound account implementation
     /// @param deployerOwner The address of the deployer owner that called the function to remove the implementation
-    event RemovedTbaImplementation(address indexed tbaImplementationAddress, address indexed deployerOwner);
+    event RemovedTbaImplementation(
+        address indexed tbaImplementationAddress,
+        address indexed deployerOwner
+    );
 
     /// @notice Emitted when an attempt is made by the deployer to dissolve a Syndicate
     /// @dev Should be one of three dissolution related events, one from each of the registry, deployer, and token contracts
     /// @param azimuthPoint The tokenId of the Urbit ID associated with the Syndicate Token to be dissolved
     /// @param syndicateToken The contract address of the syndicateToken to be dissolved, which should also be the function caller
-    event DissolutionRequestSentToRegistry(uint256 indexed azimuthPoint, address indexed syndicateToken);
+    event DissolutionRequestSentToRegistry(
+        uint256 indexed azimuthPoint,
+        address indexed syndicateToken
+    );
 
     ////////////////////////
     // External functions //
@@ -120,16 +141,22 @@ interface ISyndicateDeployerV1 {
     /// @param implementation The address of a IERC6551Account compliant contract
     /// @param salt The bytes32 value of some salt, by default `bytes32(0)` should be used
     /// @return success The boolean which should indicate that the input parameters were all validated, the registry was updated, and the syndicate contract owner was updated
-    function registerTokenOwnerChange(address newOwner, uint256 azimuthPoint, address implementation, bytes32 salt)
-        external
-        returns (bool success);
+    function registerTokenOwnerChange(
+        address newOwner,
+        uint256 azimuthPoint,
+        address implementation,
+        bytes32 salt
+    ) external returns (bool success);
 
     /// @notice Propose a change to the protocol fee for newly launched Syndicate Tokens
     /// @dev Target delay must be greater than 6600 blocks, approximately 1 day
     /// @param proposedFee The fee amount in basis points, i.e. 300 is a 3% fee
     /// @param targetDelay The time between proposal and earliest activation date, in blocks
     /// @return success Whether the function succeeded; recieving a false would be unexpected as the intended behavior is for a transaction to revert instead
-    function proposeFeeChange(uint256 proposedFee, uint256 targetDelay) external returns (bool success);
+    function proposeFeeChange(
+        uint256 proposedFee,
+        uint256 targetDelay
+    ) external returns (bool success);
 
     /// @notice Called to change protocol fee
     /// @dev function should be restricted to onlyOwner
@@ -140,7 +167,9 @@ interface ISyndicateDeployerV1 {
     /// @dev
     /// @param newFeeRecipient The address to recieve token distribution fee
     /// @return success The confirmation of the address being updated
-    function changeFeeRecipient(address newFeeRecipient) external returns (bool success);
+    function changeFeeRecipient(
+        address newFeeRecipient
+    ) external returns (bool success);
 
     /// @notice Toggle beta mode to enforce whitelisted azimuthPoints
     /// @dev When true, only tokenIds in the whitelist mapping will be able to launch Syndicate Tokens
@@ -153,49 +182,65 @@ interface ISyndicateDeployerV1 {
     /// @dev As approved implementations are stored in a mapping, track event emissions to collate the full state of the whitelist
     /// @param contractAddress The address of an approved Tokenbound Account implementation which has been vetted to only allow control by the TokenId owner
     /// @return success Whether the function succeeded; recieving a false would be unexpected as the intended behavior is for a transaction to revert instead
-    function addApprovedTbaImplementation(address contractAddress) external returns (bool success);
+    function addApprovedTbaImplementation(
+        address contractAddress
+    ) external returns (bool success);
 
     /// @notice Remove approved Tokenbound account implementation
     /// @dev Approved implementations are only used for initial deployment check; Syndicate Owners may use *any* implementation following initial launch
     /// @dev As approved implementations are stored in a mapping, track event emissions to collate the full state of the whitelist
     /// @param contractAddress The address of a Tokenbound Account implementation to be removed from the whitelist
     /// @return success Whether the function succeeded; recieving a false would be unexpected as the intended behavior is for a transaction to revert instead
-    function removeApprovedTbaImplementation(address contractAddress) external returns (bool success);
+    function removeApprovedTbaImplementation(
+        address contractAddress
+    ) external returns (bool success);
 
     /// @notice Add an Azimuth Point to the beta whitelist
     /// @param azimuthPoint The tokenId of an Urbit ID to be added to the whitelist
     /// @return success Whether the function succeeded; recieving a false would be unexpected as the intended behavior is for a transaction to revert instead
-    function addWhitelistedPoint(uint256 azimuthPoint) external returns (bool success);
+    function addWhitelistedPoint(
+        uint256 azimuthPoint
+    ) external returns (bool success);
 
     /// @notice Add an array of Azimuth Points to the beta whitelist
     /// @param azimuthPoint The tokenId of an Urbit ID to be added to the whitelist
     /// @return success Whether the function succeeded; recieving a false would be unexpected as the intended behavior is for a transaction to revert instead
-    function batchWhitelistPoints(uint256[] calldata azimuthPoint) external returns (bool success);
+    function batchWhitelistPoints(
+        uint256[] calldata azimuthPoint
+    ) external returns (bool success);
 
     /// @notice Remove an Azimuth Point from the beta whitelist
     /// @param azimuthPoint The tokenId of an Urbit ID to be removed from the whitelist
     /// @return success Whether the function succeeded; recieving a false would be unexpected as the intended behavior is for a transaction to revert instead
-    function removeWhitelistedPoint(uint256 azimuthPoint) external returns (bool success);
+    function removeWhitelistedPoint(
+        uint256 azimuthPoint
+    ) external returns (bool success);
 
     /// @notice Add an address to the permissioned contract mapping
     /// @dev As permissioned contracts can do fee-less mints from Syndicate Token contracts, any contracts added here should be heavily vetted
     /// @dev As this adds contracts to a mapping, track event emissions to collate the full set of permissioned contracts
     /// @param contractAddress The address of a contract to be added to the permissionedContract mapping
     /// @return success Whether the function succeeded; recieving a false would be unexpected as the intended behavior is for a transaction to revert instead
-    function addPermissionedContract(address contractAddress) external returns (bool success);
+    function addPermissionedContract(
+        address contractAddress
+    ) external returns (bool success);
 
     /// @notice Add an address to the permissioned contract mapping
     /// @dev As Syndicate Token's may be dependent on a permissioned contract for their minting functionality and related valuation, removals of permissioned contracts should be heavily vetted prior to execution
     /// @dev As this removes contracts to a mapping, track event emissions to collate the full set of permissioned contracts
     /// @param contractAddress The address of a contract to be removed from the permissionedContract mapping
     /// @return success Whether the function succeeded; recieving a false would be unexpected as the intended behavior is for a transaction to revert instead
-    function removePermissionedContract(address contractAddress) external returns (bool success);
+    function removePermissionedContract(
+        address contractAddress
+    ) external returns (bool success);
 
     /// @notice Dissolve Syndicate in Registry
     /// @dev Should only be callable by the Syndicate associated with the azimuthPoint value being provided as an input parameter
     /// @param azimuthPoint The tokenId of the Syndicate to be removed from the registry
     /// @return success Whether the function succeeded; recieving a false would be unexpected as the intended behavior is for a transaction to revert instead
-    function dissolveSyndicateInRegistry(uint256 azimuthPoint) external returns (bool success);
+    function dissolveSyndicateInRegistry(
+        uint256 azimuthPoint
+    ) external returns (bool success);
 
     /// @notice called to get address of registry contract
     /// @return syndicateRegistry The address of the registry contract which implements the ISyndicateRegistry interface
@@ -226,17 +271,24 @@ interface ISyndicateDeployerV1 {
 
     /// @notice Earliest implementation block for proposed fee update`
     /// @return rateChangeBlockheight The blockheight at which `changeFee()` may be called by the owner
-    function getRateChangeBlockheight() external view returns (uint256 rateChangeBlockheight);
+    function getRateChangeBlockheight()
+        external
+        view
+        returns (uint256 rateChangeBlockheight);
 
     /// @notice Check if an address is a permissioned contract
     /// @param contractAddress Any address that may be in the permissioned contract mapping
     /// @return isPermissioned The boolean indicating permissioned status
-    function isPermissionedContract(address contractAddress) external view returns (bool isPermissioned);
+    function isPermissionedContract(
+        address contractAddress
+    ) external view returns (bool isPermissioned);
 
     /// @notice Check if address is a Syndicate Token launched from this Deployer
     /// @param contractAddress Any address that may be a Syndicate Token
     /// @return isRelated The boolean indicating if address is a Syndicate Token from this deployer
-    function isRelatedSyndicate(address contractAddress) external view returns (bool isRelated);
+    function isRelatedSyndicate(
+        address contractAddress
+    ) external view returns (bool isRelated);
 
     /// @notice Check state of Beta mode
     /// @return betaState The boolean indicating if deployer is in beta mode
@@ -246,5 +298,7 @@ interface ISyndicateDeployerV1 {
     /// @dev DM ~sarlev-sarsen on urbit to get your ERC6551 TBA implementation added as an approved implementation
     /// @param checkAddress The address of a potential tokenbound account implementation
     /// @return approvedImplementation The boolean indicating if the provided address is an approved implementation
-    function isApprovedImplementation(address checkAddress) external view returns (bool approvedImplementation);
+    function isApprovedImplementation(
+        address checkAddress
+    ) external view returns (bool approvedImplementation);
 }

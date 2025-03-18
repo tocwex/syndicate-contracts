@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPLv3
 
-pragma solidity ^0.8.19;
+pragma solidity 0.8.25;
 
 import {Script} from "@forge-std/Script.sol";
 import {console2} from "../lib/forge-std/src/console2.sol";

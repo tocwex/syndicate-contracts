@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPLv3
 
-pragma solidity ^0.8.19;
+pragma solidity 0.8.25;
 
 import {IERC721} from "../../lib/openzepplin-contracts/contracts/token/ERC721/IERC721.sol";
 

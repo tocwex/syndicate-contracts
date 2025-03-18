@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPLv3
 
-pragma solidity ^0.8.19;
+pragma solidity 0.8.25;
 
 /// @title Azimuth owner function call interface
 /// @dev In order to give a static `tokenContract` for ERC6551 tokenbound accounts, we need to call Azimuth's `owner()` method to retrieve the current address for Eclpitic which implements the `ownerOf()` method in compliance to the ERC721 standard

@@ -9,5 +9,7 @@ remappings = [
 ]
 ignored_error_codes = [2072, 2018, 5667]
 
+evm_version = "paris"
+optimizer = true
 via_ir = true
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options
