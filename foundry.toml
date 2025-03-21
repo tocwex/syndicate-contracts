@@ -2,5 +2,14 @@
 src = "src"
 out = "out"
 libs = ["lib"]
+remappings = [
+    "@openzepplin/=lib/openzepplin-contracts/contracts",
+    "@forge-std/=lib/forge-std/src/",
+    "erc6551/=lib/tokenbound/lib/erc6551/src/"
+]
+ignored_error_codes = [2072, 2018, 5667]
 
+evm_version = "paris"
+optimizer = true
+via_ir = true
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options
