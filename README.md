@@ -32,11 +32,14 @@ The onchain element of a Syndicate takes full advantage of the permissionless co
 - Urbit ID non-fungible tokens for identity and p2p networking
 - Tokenbound Account smart wallets for identity-linked transactions
 - Gnosis Safe multisigs and ENS domains for ecosystem compatibility
+
   These technologies give us a way to manage onchain assets and governance, doing anything you may see from a web3 DAO:
+
 - Peer-to-peer token transfers
 - Pseudonymous asset ownership
 - Shared control of treasury assets
 - Trustless rights enforcement
+
   The cornerstone, though, is how we create a link between the onchain and offchain. If your onchain network is a collection of addresses, tokens, and cryptographic keys, your offchain network is a collection of actors coordinating across a blend of 'official' and unofficial digital and analog mediums looking to onchain digital artifacts as a representation of value and credibility. Unfortunately, In the current landscape, the state of offchain networks is somewhere between 'tenuous' and 'entirely non-existent'.
 
 This is important because the socioeconomic strength of any given web3 organization must be assessed with a mind to the validity of the connection between these two networks. If the onchain consensus doesn't have a valid connection to the offchain operation (decentralized or otherwise), what good is the consensus as a indicator of operational capacity to impact the future on behalf of digital rights holders? Syndicates enhance the validity of this connection by inextricably linking your onchain shelling point to your offchain shelling point.
@@ -47,6 +50,7 @@ Through tokenbound accounts, a canonical Syndicate Registry, and an extensible p
 
 - Allows fractionalization of an individual non-fungible token, enabling onchain signaling and participation in specific Syndicate communities
 - Protects against the proliferation of shitcoin scams, pump and dumps, or other wasteful spam
+
   The onchain Syndicate Registry records relationships between Urbit IDs and Syndicate Token contract addresses, ensuring that community members and prospective token holders can transparently understand the connection between a given ERC20 token, an Urbit ID, and it's off-chain networked computer. No need to rely on a centralized memecoin platform that centrally hosts off-chain content. No need to hope that you are following the right account on twitter. No wishing that you didn't have to join yet another Telegram chat.
 
 Interested in acquiring a particular Syndicate Token? Just send them a peer-to-peer message. Maybe they have a public group you can join, maybe they have some software you can download, or maybe they aren't even online (in which case, maybe you want to stay away).
